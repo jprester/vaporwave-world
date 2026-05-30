@@ -875,12 +875,12 @@ export default function Scene() {
 
   const lights = useControls("Lights", {
     ambientColor: "#e8cad8",
-    ambientIntensity: { value: 1.8, min: 0, max: 5, step: 0.1 },
+    ambientIntensity: { value: 1.2, min: 0, max: 5, step: 0.1 },
     hemiSkyColor: "#b7b6d6",
     hemiGroundColor: "#e8bccf",
-    hemiIntensity: { value: 0.5, min: 0, max: 5, step: 0.1 },
+    hemiIntensity: { value: 1.8, min: 0, max: 5, step: 0.1 },
     dirColor: "#ff6ea5",
-    dirIntensity: { value: 2.7, min: 0, max: 10, step: 0.1 },
+    dirIntensity: { value: 7.2, min: 0, max: 10, step: 0.1 },
   });
 
   const effects = useControls("Effects", {
