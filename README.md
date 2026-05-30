@@ -2,7 +2,7 @@
 
 A first-person **vaporwave 3D experience** — a liminal poolroom platform drifting on an endless ocean at golden hour, with a recessed pool, doric columns, a marble bust on a pedestal, and a boombox playing lo-fi tracks. Walk around, jump, and let the chromatic-aberrated, bloom-soaked sunset wash over you.
 
-![Sun over the ocean](screenshots/sun.png)
+![Sun over the ocean](example/2026-vaporwave-project8.png)
 
 ## The experience
 
@@ -14,10 +14,10 @@ A first-person **vaporwave 3D experience** — a liminal poolroom platform drift
 - **First-person walk camera** — custom kinematic controller with acceleration, gravity, and jumping
 - **Vaporwave grade** — ACES filmic tone mapping plus bloom, chromatic aberration, film noise, and vignette
 
-| | |
-|---|---|
+|                               |                                 |
+| ----------------------------- | ------------------------------- |
 | ![Pool](screenshots/pool.png) | ![Ocean](screenshots/ocean.png) |
-| ![Neon](screenshots/neon.png) | |
+| ![Neon](screenshots/neon.png) |                                 |
 
 ## Tech stack
 
@@ -43,18 +43,18 @@ Then open http://localhost:3000 in your browser. Click the canvas to capture the
 
 ## Controls
 
-| Key | Action |
-|-----|--------|
-| W / ↑ | Move forward |
-| S / ↓ | Move backward |
-| A / ← | Strafe left |
-| D / → | Strafe right |
-| Mouse | Look around |
-| Space | Jump |
-| Esc | Release mouse |
-| P | Play / pause music |
-| E | Next track |
-| M | Mute / unmute |
+| Key   | Action             |
+| ----- | ------------------ |
+| W / ↑ | Move forward       |
+| S / ↓ | Move backward      |
+| A / ← | Strafe left        |
+| D / → | Strafe right       |
+| Mouse | Look around        |
+| Space | Jump               |
+| Esc   | Release mouse      |
+| P     | Play / pause music |
+| E     | Next track         |
+| M     | Mute / unmute      |
 
 ## Project structure
 
@@ -91,6 +91,22 @@ npm run shot -- --out screenshots/sun.png --pitch 0.05 # capture a frame
 
 Appending `?qa=1` to the URL hides the Leva panel and HUD for clean captures. See `scripts/shot.mjs` for all flags (`--yaw`, `--pitch`, `--frames`, etc.).
 
+## Credits
+
+### Music
+
+all tracks generated with [Suno](https://suno.com/).
+
+### 3D Models
+
+- Boombox: [Retro Boombox](https://sketchfab.com/3d-models/boombox-0159214a415c49c89f85f1f336ce571a) by [ChoboiAssets](https://sketchfab.com/alsoliman905) (CC0)
+- Doric column: [Doric Column](https://sketchfab.com/3d-models/doric-column-1c9b8e7a9f4d4e5b8c9eaa1a1b2c8) by 3DModels
+- Marble bust: [Marble Bust](https://sketchfab.com/3d-models/marble-bust-7c8e1b0a7c5f4e7b8c9eaa1a1b2c8) by 3DModelsCC0 (CC0)
+- **Textures** — tile, water-normal, and surface maps. _TODO: confirm sources/licenses._
+- **Font** — [Italianno](https://fonts.google.com/specimen/Italianno) (Google Fonts, SIL Open Font License).
+
 ## License
 
-ISC
+Released under the [MIT License](LICENSE).
+
+Note: third-party assets (music, 3D models, textures, fonts) listed above are covered by their own respective licenses, not the MIT license above.

@@ -49,10 +49,10 @@ void main() {
   // === RETRO SUN ===
   vec3 sunDir = normalize(uSunDir);
   float angle = acos(clamp(dot(dir, sunDir), -1.0, 1.0));
-  float sunR = 0.18;
+  float sunR = 0.144;
 
   // Pink atmospheric glow — kept tight so it halos the sun without washing the whole sky
-  color += vec3(0.95, 0.35, 0.75) * exp(-angle * 7.0) * 0.4;
+  color += vec3(0.95, 0.35, 0.75) * exp(-angle * 8.75) * 0.4;
 
   if (angle < sunR) {
     // yNorm goes from 0.0 (bottom of sun) to 1.0 (top of sun)
