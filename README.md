@@ -99,9 +99,9 @@ all tracks generated with [Suno](https://suno.com/).
 
 ### 3D Models
 
-- Boombox: [Retro Boombox](https://sketchfab.com/3d-models/boombox-0159214a415c49c89f85f1f336ce571a) by [ChoboiAssets](https://sketchfab.com/alsoliman905) (CC0)
-- Doric column: [Doric Column](https://sketchfab.com/3d-models/doric-column-1c9b8e7a9f4d4e5b8c9eaa1a1b2c8) by 3DModels
-- Marble bust: [Marble Bust](https://sketchfab.com/3d-models/marble-bust-7c8e1b0a7c5f4e7b8c9eaa1a1b2c8) by 3DModelsCC0 (CC0)
+- Boombox: [Retro Boombox](https://sketchfab.com/3d-models/boombox-0159214a415c49c89f85f1f336ce571a) by [ChoboiAssets](https://sketchfab.com/alsoliman905) (CC Attribution)
+- Doric column: [Doric Column](https://sketchfab.com/3d-models/doric-pillar-f5be847e525e401299f2a119372edd18) by [lcoyne](https://sketchfab.com/lcoyne) (CC Attribution)
+- Helios Vaporwave Bust: [Helios Vaporwave Bust](https://sketchfab.com/3d-models/helios-vaporwave-bust-f7a0fdfc6bef44b497e33257658764c8) by [fil0s0v](https://sketchfab.com/fil0s0v) (CC Attribution)
 - **Textures** — tile, water-normal, and surface maps. _TODO: confirm sources/licenses._
 - **Font** — [Italianno](https://fonts.google.com/specimen/Italianno) (Google Fonts, SIL Open Font License).
 
