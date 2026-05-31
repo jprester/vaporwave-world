@@ -1,4 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
+import type { CSSProperties } from "react";
 import {
   armAutoStart,
   getSnapshot,
@@ -8,6 +9,33 @@ import {
   toggleMute,
 } from "./musicStore";
 
+// Fullscreen helpers. Toggling fullscreen makes the experience more immersive
+// and keeps browser chrome out of screen recordings. `requestFullscreen` must
+// run inside a user gesture (key press / click), which is always the case here.
+// Older Safari needs the `webkit`-prefixed variants.
+type FsElement = HTMLElement & {
+  webkitRequestFullscreen?: () => Promise<void> | void;
+};
+type FsDocument = Document & {
+  webkitFullscreenElement?: Element | null;
+  webkitExitFullscreen?: () => Promise<void> | void;
+};
+
+function isFullscreenActive(): boolean {
+  const doc = document as FsDocument;
+  return Boolean(doc.fullscreenElement || doc.webkitFullscreenElement);
+}
+
+function toggleFullscreen(): void {
+  const doc = document as FsDocument;
+  if (isFullscreenActive()) {
+    (doc.exitFullscreen || doc.webkitExitFullscreen)?.call(doc);
+  } else {
+    const el = document.documentElement as FsElement;
+    (el.requestFullscreen || el.webkitRequestFullscreen)?.call(el);
+  }
+}
+
 export default function UI() {
   const isQaMode =
     typeof window !== "undefined" &&
@@ -15,6 +43,7 @@ export default function UI() {
 
   const music = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   const [helpOpen, setHelpOpen] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     if (isQaMode) return;
@@ -32,10 +61,26 @@ export default function UI() {
       } else if (e.code === "KeyM") {
         e.preventDefault();
         toggleMute();
+      } else if (e.code === "KeyF") {
+        e.preventDefault();
+        toggleFullscreen();
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isQaMode]);
+
+  // Keep the button label in sync with the actual fullscreen state, including
+  // when the user exits via Esc or the system, which don't go through our toggle.
+  useEffect(() => {
+    if (isQaMode) return;
+    const onChange = () => setIsFullscreen(isFullscreenActive());
+    document.addEventListener("fullscreenchange", onChange);
+    document.addEventListener("webkitfullscreenchange", onChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("webkitfullscreenchange", onChange);
+    };
   }, [isQaMode]);
 
   if (isQaMode) {
@@ -65,27 +110,31 @@ export default function UI() {
             gap: 12,
           }}>
           <strong>Plato's Cove</strong>
-          <button
-            type="button"
-            aria-label={helpOpen ? "Minimize instructions" : "Show instructions"}
-            onClick={(e) => {
-              setHelpOpen((v) => !v);
-              (e.currentTarget as HTMLButtonElement).blur();
-            }}
-            style={{
-              background: "transparent",
-              border: "1px solid rgba(255, 255, 255, 0.35)",
-              color: "white",
-              fontFamily: "monospace",
-              fontSize: 13,
-              lineHeight: 1,
-              width: 22,
-              height: 22,
-              borderRadius: 4,
-              cursor: "pointer",
-            }}>
-            {helpOpen ? "–" : "?"}
-          </button>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              type="button"
+              aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+              title={isFullscreen ? "Exit fullscreen (F)" : "Fullscreen (F)"}
+              onClick={(e) => {
+                toggleFullscreen();
+                (e.currentTarget as HTMLButtonElement).blur();
+              }}
+              style={iconButtonStyle}>
+              {isFullscreen ? "⤡" : "⤢"}
+            </button>
+            <button
+              type="button"
+              aria-label={
+                helpOpen ? "Minimize instructions" : "Show instructions"
+              }
+              onClick={(e) => {
+                setHelpOpen((v) => !v);
+                (e.currentTarget as HTMLButtonElement).blur();
+              }}
+              style={iconButtonStyle}>
+              {helpOpen ? "–" : "?"}
+            </button>
+          </div>
         </div>
         {helpOpen && (
           <>
@@ -93,6 +142,7 @@ export default function UI() {
             <div>WASD / arrows move</div>
             <div>Space jumps</div>
             <div>Esc releases mouse</div>
+            <div>F fullscreen</div>
             <div style={{ marginTop: 8, opacity: 0.85 }}>
               Walk to the boombox for music
             </div>
@@ -109,9 +159,56 @@ export default function UI() {
         trackLabel={music.trackLabel}
         visible={music.nearBoombox}
       />
+      <div style={creditStyle}>
+        <span style={{ opacity: 0.7 }}>Made by</span>{" "}
+        <strong>J. Prester</strong>
+        <span style={{ opacity: 0.45 }}> · </span>
+        <a
+          href="https://github.com/jprester"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={creditLinkStyle}>
+          GitHub
+        </a>
+        <span style={{ opacity: 0.45 }}> · </span>
+        <a href="mailto:janko.prester@gmail.com" style={creditLinkStyle}>
+          Email
+        </a>
+      </div>
     </>
   );
 }
+
+const creditStyle: CSSProperties = {
+  position: "absolute",
+  bottom: 14,
+  right: 16,
+  color: "white",
+  fontFamily: "monospace",
+  fontSize: 12,
+  lineHeight: 1.4,
+  background: "rgba(0, 0, 0, 0.42)",
+  padding: "6px 10px",
+  borderRadius: 6,
+};
+
+const creditLinkStyle: CSSProperties = {
+  color: "#ff7cc8",
+  textDecoration: "none",
+};
+
+const iconButtonStyle: CSSProperties = {
+  background: "transparent",
+  border: "1px solid rgba(255, 255, 255, 0.35)",
+  color: "white",
+  fontFamily: "monospace",
+  fontSize: 13,
+  lineHeight: 1,
+  width: 22,
+  height: 22,
+  borderRadius: 4,
+  cursor: "pointer",
+};
 
 interface MusicControlsProps {
   isPlaying: boolean;
