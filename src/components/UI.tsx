@@ -149,6 +149,31 @@ export default function UI() {
             <div style={{ opacity: 0.85 }}>
               P play/pause &nbsp; E next &nbsp; M mute
             </div>
+            <div style={creditStyle}>
+              <span style={{ opacity: 0.7 }}>Made by</span>{" "}
+              <strong>J. Prester</strong>
+              <div style={{ marginTop: 2 }}>
+                <a
+                  href="https://github.com/jprester"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={creditLinkStyle}>
+                  GitHub
+                </a>
+                <span style={{ opacity: 0.45 }}> · </span>
+                <a href="mailto:janko.prester@gmail.com" style={creditLinkStyle}>
+                  Email
+                </a>
+                <span style={{ opacity: 0.45 }}> · </span>
+                <a
+                  href="https://www.jankoprester.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={creditLinkStyle}>
+                  Web
+                </a>
+              </div>
+            </div>
           </>
         )}
       </div>
@@ -159,37 +184,16 @@ export default function UI() {
         trackLabel={music.trackLabel}
         visible={music.nearBoombox}
       />
-      <div style={creditStyle}>
-        <span style={{ opacity: 0.7 }}>Made by</span>{" "}
-        <strong>J. Prester</strong>
-        <span style={{ opacity: 0.45 }}> · </span>
-        <a
-          href="https://github.com/jprester"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={creditLinkStyle}>
-          GitHub
-        </a>
-        <span style={{ opacity: 0.45 }}> · </span>
-        <a href="mailto:janko.prester@gmail.com" style={creditLinkStyle}>
-          Email
-        </a>
-      </div>
     </>
   );
 }
 
 const creditStyle: CSSProperties = {
-  position: "absolute",
-  bottom: 14,
-  right: 16,
-  color: "white",
-  fontFamily: "monospace",
-  fontSize: 12,
-  lineHeight: 1.4,
-  background: "rgba(0, 0, 0, 0.42)",
-  padding: "6px 10px",
-  borderRadius: 6,
+  marginTop: 10,
+  paddingTop: 8,
+  borderTop: "1px solid rgba(255, 255, 255, 0.15)",
+  fontSize: 11,
+  opacity: 0.85,
 };
 
 const creditLinkStyle: CSSProperties = {
