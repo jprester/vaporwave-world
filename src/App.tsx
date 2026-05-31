@@ -5,6 +5,7 @@ import { Leva } from "leva";
 
 import Scene from "./components/Scene";
 import UI from "./components/UI";
+import LoadingScreen from "./components/LoadingScreen";
 import CompatibilityNotice from "./components/CompatibilityNotice";
 import { detectCompatibilityIssue } from "./components/compatibility";
 
@@ -54,6 +55,7 @@ export default function App() {
         <Scene />
       </Canvas>
       <UI />
+      {!isQaMode && <LoadingScreen />}
     </>
   );
 }
