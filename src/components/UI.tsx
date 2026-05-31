@@ -1,5 +1,6 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import {
+  armAutoStart,
   getSnapshot,
   nextTrack,
   subscribe,
@@ -13,9 +14,11 @@ export default function UI() {
     new URLSearchParams(window.location.search).get("qa") === "1";
 
   const music = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const [helpOpen, setHelpOpen] = useState(true);
 
   useEffect(() => {
     if (isQaMode) return;
+    armAutoStart();
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
       const tag = (e.target as HTMLElement | null)?.tagName;
@@ -51,18 +54,53 @@ export default function UI() {
           fontSize: 13,
           lineHeight: 1.55,
           background: "rgba(0, 0, 0, 0.42)",
-          padding: "12px 14px",
+          padding: helpOpen ? "12px 14px" : "8px 12px",
           borderRadius: 6,
-          pointerEvents: "none",
         }}>
-        <strong>Plato's Cove</strong>
-        <div>Click to capture mouse</div>
-        <div>WASD / arrows move</div>
-        <div>Space jumps</div>
-        <div>Esc releases mouse</div>
-        <div style={{ marginTop: 8, opacity: 0.85 }}>
-          P play/pause &nbsp; E next &nbsp; M mute
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+          }}>
+          <strong>Plato's Cove</strong>
+          <button
+            type="button"
+            aria-label={helpOpen ? "Minimize instructions" : "Show instructions"}
+            onClick={(e) => {
+              setHelpOpen((v) => !v);
+              (e.currentTarget as HTMLButtonElement).blur();
+            }}
+            style={{
+              background: "transparent",
+              border: "1px solid rgba(255, 255, 255, 0.35)",
+              color: "white",
+              fontFamily: "monospace",
+              fontSize: 13,
+              lineHeight: 1,
+              width: 22,
+              height: 22,
+              borderRadius: 4,
+              cursor: "pointer",
+            }}>
+            {helpOpen ? "–" : "?"}
+          </button>
         </div>
+        {helpOpen && (
+          <>
+            <div>Click to capture mouse</div>
+            <div>WASD / arrows move</div>
+            <div>Space jumps</div>
+            <div>Esc releases mouse</div>
+            <div style={{ marginTop: 8, opacity: 0.85 }}>
+              Walk to the boombox for music
+            </div>
+            <div style={{ opacity: 0.85 }}>
+              P play/pause &nbsp; E next &nbsp; M mute
+            </div>
+          </>
+        )}
       </div>
       <MusicControls
         isPlaying={music.isPlaying}

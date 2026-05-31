@@ -29,6 +29,8 @@ interface Snapshot {
   nearBoombox: boolean;
 }
 
+const FADE_IN_MS = 1500;
+
 let audioElements: HTMLAudioElement[] = [];
 let currentIndex = 0;
 let isPlaying = false;
@@ -37,6 +39,11 @@ let hasStarted = false;
 let distanceVolume = 1;
 let lastWrittenVolume = -1;
 let nearBoombox = false;
+// Multiplier ramped 0 -> 1 on the first start so playback fades in rather than
+// hard-starting at full volume.
+let fadeGain = 1;
+let fadeRaf = 0;
+let autoStartArmed = false;
 
 let snapshot: Snapshot = {
   isPlaying: false,
@@ -79,7 +86,20 @@ function ensureAudio() {
 }
 
 function effectiveVolume() {
-  return isMuted ? 0 : distanceVolume;
+  return isMuted ? 0 : distanceVolume * fadeGain;
+}
+
+function startFadeIn() {
+  if (fadeRaf) cancelAnimationFrame(fadeRaf);
+  fadeGain = 0;
+  const start = performance.now();
+  const step = (now: number) => {
+    const t = Math.min(1, (now - start) / FADE_IN_MS);
+    fadeGain = t;
+    writeVolume(true);
+    fadeRaf = t < 1 ? requestAnimationFrame(step) : 0;
+  };
+  fadeRaf = requestAnimationFrame(step);
 }
 
 function writeVolume(force = false) {
@@ -93,6 +113,12 @@ function writeVolume(force = false) {
 export function play() {
   ensureAudio();
   const a = audioElements[currentIndex];
+  if (!hasStarted) {
+    a.currentTime = 0;
+    startFadeIn();
+  } else {
+    fadeGain = 1;
+  }
   writeVolume(true);
   const result = a.play();
   if (result && typeof result.then === "function") {
@@ -147,6 +173,21 @@ export function setNearBoombox(v: boolean) {
   if (v === nearBoombox) return;
   nearBoombox = v;
   notify();
+}
+
+// Browsers block autoplay until a user gesture, so we can't start music on
+// load. Arm a one-shot listener that starts the track (with fade-in) on the
+// first click/keypress — typically the same click that captures the mouse.
+export function armAutoStart() {
+  if (autoStartArmed || typeof window === "undefined") return;
+  autoStartArmed = true;
+  const trigger = () => {
+    window.removeEventListener("pointerdown", trigger);
+    window.removeEventListener("keydown", trigger);
+    if (!hasStarted) play();
+  };
+  window.addEventListener("pointerdown", trigger);
+  window.addEventListener("keydown", trigger);
 }
 
 export function subscribe(listener: () => void) {
