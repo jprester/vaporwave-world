@@ -1,9 +1,12 @@
+import { useMemo, useState } from "react";
 import { ACESFilmicToneMapping } from "three";
 import { Canvas } from "@react-three/fiber";
 import { Leva } from "leva";
 
 import Scene from "./components/Scene";
 import UI from "./components/UI";
+import CompatibilityNotice from "./components/CompatibilityNotice";
+import { detectCompatibilityIssue } from "./components/compatibility";
 
 export default function App() {
   // ?qa=1 hides dev overlays (Leva panel) for clean headless screenshots.
@@ -13,6 +16,27 @@ export default function App() {
 
   // Never show the Leva debug panel in a production build — only in `npm run dev`.
   const hideLeva = isQaMode || import.meta.env.PROD;
+
+  // Detect mobile / missing-WebGL / underpowered environments. Run once on
+  // mount; the result can't change without a reload. QA mode skips the gate so
+  // headless screenshots always render the scene.
+  const issue = useMemo(
+    () => (isQaMode ? null : detectCompatibilityIssue()),
+    [isQaMode],
+  );
+  const [dismissed, setDismissed] = useState(false);
+
+  // Hard block (mobile / no WebGL): never mount the Canvas or load assets.
+  if (issue && issue.severity === "block") {
+    return <CompatibilityNotice issue={issue} />;
+  }
+
+  // Soft warning (slow device): let the user choose to continue.
+  if (issue && issue.severity === "warn" && !dismissed) {
+    return (
+      <CompatibilityNotice issue={issue} onContinue={() => setDismissed(true)} />
+    );
+  }
 
   return (
     <>
