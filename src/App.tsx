@@ -49,7 +49,7 @@ export default function App() {
         dpr={[1, 2]}
         onCreated={({ gl }) => {
           gl.toneMapping = ACESFilmicToneMapping;
-          gl.toneMappingExposure = 0.6;
+          gl.toneMappingExposure = 0.68;
         }}
         style={{ background: "#000", width: "100vw", height: "100vh" }}>
         <Scene />

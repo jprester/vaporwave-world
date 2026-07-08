@@ -554,7 +554,7 @@ function FloatingFloor({ sunDirection }: { sunDirection: Vector3 }) {
         offsetY,
       ),
       normalScale: new Vector2(0.18, 0.18),
-      color: "#e8d0d8",
+      color: "#f3e2e8",
       roughness: 0.15,
       metalness: 0,
       // Clearcoat is the wet/glazed varnish layer on top of the ceramic base.
@@ -812,7 +812,7 @@ function PlatoSign() {
         repeatY,
       ),
       normalScale: new Vector2(0.08, 0.08),
-      color: "#ead4dc",
+      color: "#f5e8ee",
       roughness: 0.15,
       metalness: 0,
       clearcoat: 0.85,
@@ -875,24 +875,24 @@ export default function Scene() {
 
   const lights = useControls("Lights", {
     ambientColor: "#e8cad8",
-    ambientIntensity: { value: 1.2, min: 0, max: 5, step: 0.1 },
+    ambientIntensity: { value: 1.15, min: 0, max: 5, step: 0.1 },
     hemiSkyColor: "#b7b6d6",
     hemiGroundColor: "#e8bccf",
-    hemiIntensity: { value: 1.8, min: 0, max: 5, step: 0.1 },
-    dirColor: "#ff6ea5",
-    dirIntensity: { value: 7.2, min: 0, max: 10, step: 0.1 },
+    hemiIntensity: { value: 1.4, min: 0, max: 5, step: 0.1 },
+    dirColor: "#ff87b3",
+    dirIntensity: { value: 6.2, min: 0, max: 10, step: 0.1 },
   });
 
   const effects = useControls("Effects", {
-    bloomIntensity: { value: 0.1, min: 0, max: 5, step: 0.01 },
-    bloomThreshold: { value: 1.45, min: 0, max: 3, step: 0.01 },
+    bloomIntensity: { value: 0.5, min: 0, max: 5, step: 0.01 },
+    bloomThreshold: { value: 1.2, min: 0, max: 3, step: 0.01 },
     bloomSmoothing: { value: 0.5, min: 0, max: 1, step: 0.01 },
-    bloomRadius: { value: 0.22, min: 0, max: 1, step: 0.01 },
+    bloomRadius: { value: 0.4, min: 0, max: 1, step: 0.01 },
     chromaticOffset: { value: 0.002, min: 0, max: 0.009, step: 0.001 },
     modulationOffset: { value: 0.45, min: 0, max: 1, step: 0.01 },
     vignetteOffset: { value: 0.4, min: 0, max: 1, step: 0.01 },
     vignetteDarkness: { value: 0.35, min: 0, max: 1, step: 0.01 },
-    noiseOpacity: { value: 0.15, min: 0, max: 1, step: 0.01 },
+    noiseOpacity: { value: 0.09, min: 0, max: 1, step: 0.01 },
   });
 
   const chromaticAberrationOffset = useMemo(
@@ -937,7 +937,7 @@ export default function Scene() {
       waterNormals,
       sunDirection: new Vector3(),
       sunColor: 0xff33aa,
-      waterColor: 0x4fb8c4,
+      waterColor: 0x35c3cf,
       distortionScale: 2.0,
       fog: false,
     });
@@ -953,7 +953,7 @@ export default function Scene() {
     getUniforms(water).sunDirection.value.copy(sunDirection);
     const material = skyMesh.material as RawShaderMaterial;
     material.uniforms.uSunDir.value.copy(sunDirection);
-    scene.fog = new Fog(0xf5cedd, 60, 700);
+    scene.fog = new Fog(0xefb9d4, 80, 900);
 
     return () => {
       scene.fog = null;
