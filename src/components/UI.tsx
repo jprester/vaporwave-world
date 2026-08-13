@@ -161,7 +161,9 @@ export default function UI() {
                   GitHub
                 </a>
                 <span style={{ opacity: 0.45 }}> · </span>
-                <a href="mailto:janko.prester@gmail.com" style={creditLinkStyle}>
+                <a
+                  href="mailto:janko.prester@gmail.com"
+                  style={creditLinkStyle}>
                   Email
                 </a>
                 <span style={{ opacity: 0.45 }}> · </span>
