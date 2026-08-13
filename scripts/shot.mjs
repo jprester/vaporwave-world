@@ -5,6 +5,12 @@
 // then writes a PNG. Pairs with the in-app debug hooks: window.advanceTime,
 // window.setCameraOrientation, window.render_game_to_text (see Scene.tsx).
 //
+// Note: SwiftShader (software WebGL) has a quirk where the downscaled
+// roughness map combined with the Bloom effect renders an all-black frame
+// when the camera looks level or slightly down (pitch <= ~0.03 rad). Keep
+// `--pitch 0.05` (the default README command) or higher, or run with a real
+// GPU, to capture visible frames.
+//
 // Usage:
 //   npm run dev                      # in one terminal (serves :3000)
 //   node scripts/shot.mjs --out screenshots/sun.png --yaw 0 --pitch 0.05

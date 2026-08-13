@@ -391,6 +391,16 @@ function configureRepeatingTexture(
   return texture;
 }
 
+// Disposes a tiled material together with its cloned map textures. The maps
+// are per-material clones (see makeTiledMaterial), so they must be disposed
+// individually or they leak GPU resources when the material goes away.
+function disposeTiledMaterial(material: MeshPhysicalMaterial) {
+  material.map?.dispose();
+  material.normalMap?.dispose();
+  material.roughnessMap?.dispose();
+  material.dispose();
+}
+
 const COLUMN_POSITIONS: [number, number, number][] = [
   [20, FLOOR_HEIGHT, -19],
   [20, FLOOR_HEIGHT, -10],
@@ -463,9 +473,9 @@ function FloorDoor() {
 
 function FloatingFloor({ sunDirection }: { sunDirection: Vector3 }) {
   const [colorMap, normalMap, roughnessMap] = useLoader(TextureLoader, [
-    "/textures/wall/bahtroom-walls2/Tiles105_4K-JPG_Color.jpg",
-    "/textures/wall/bahtroom-walls2/Tiles105_4K-JPG_NormalGL.jpg",
-    "/textures/wall/bahtroom-walls2/Tiles105_4K-JPG_Roughness.jpg",
+    "/textures/wall/bahtroom-walls2/Tiles105_2K-JPG_Color.jpg",
+    "/textures/wall/bahtroom-walls2/Tiles105_2K-JPG_NormalGL.jpg",
+    "/textures/wall/bahtroom-walls2/Tiles105_1K-JPG_Roughness_cr.jpg",
   ]);
   const waterNormals = useLoader(TextureLoader, "/textures/waternormals.jpg");
 
@@ -486,7 +496,7 @@ function FloatingFloor({ sunDirection }: { sunDirection: Vector3 }) {
         sunColor: 0xff5cb0,
         waterColor: 0x1d4a52,
         distortionScale: 0.15,
-        fog: false,
+        fog: true,
       },
     );
 
@@ -721,14 +731,17 @@ function FloatingFloor({ sunDirection }: { sunDirection: Vector3 }) {
 
   useEffect(
     () => () => {
-      slabMaterials.forEach((m) => m.dispose());
-      poolFloorMaterial.dispose();
+      slabMaterials.forEach(disposeTiledMaterial);
+      disposeTiledMaterial(poolFloorMaterial);
       poolWater.geometry.dispose();
       poolWater.material.dispose();
-      poolWallMaterials.nsFront.dispose();
-      poolWallMaterials.nsBack.dispose();
-      poolWallMaterials.ewEast.dispose();
-      poolWallMaterials.ewWest.dispose();
+      // The pool water clones the shared water-normals texture for its own
+      // wrapping; release that clone (the ocean's copy stays alive).
+      (poolWater.material.uniforms.normalSampler.value as Texture).dispose();
+      disposeTiledMaterial(poolWallMaterials.nsFront);
+      disposeTiledMaterial(poolWallMaterials.nsBack);
+      disposeTiledMaterial(poolWallMaterials.ewEast);
+      disposeTiledMaterial(poolWallMaterials.ewWest);
     },
     [slabMaterials, poolFloorMaterial, poolWater, poolWallMaterials],
   );
@@ -795,9 +808,9 @@ function FloatingFloor({ sunDirection }: { sunDirection: Vector3 }) {
 
 function PlatoSign() {
   const [colorMap, normalMap, roughnessMap] = useLoader(TextureLoader, [
-    "/textures/wall/bahtroom-walls2/Tiles105_4K-JPG_Color.jpg",
-    "/textures/wall/bahtroom-walls2/Tiles105_4K-JPG_NormalGL.jpg",
-    "/textures/wall/bahtroom-walls2/Tiles105_4K-JPG_Roughness.jpg",
+    "/textures/wall/bahtroom-walls2/Tiles105_2K-JPG_Color.jpg",
+    "/textures/wall/bahtroom-walls2/Tiles105_2K-JPG_NormalGL.jpg",
+    "/textures/wall/bahtroom-walls2/Tiles105_1K-JPG_Roughness_cr.jpg",
   ]);
 
   const pedestalMaterial = useMemo(() => {
@@ -821,7 +834,15 @@ function PlatoSign() {
     });
   }, [colorMap, normalMap, roughnessMap]);
 
-  useEffect(() => () => pedestalMaterial.dispose(), [pedestalMaterial]);
+  useEffect(
+    () => () => {
+      pedestalMaterial.map?.dispose();
+      pedestalMaterial.normalMap?.dispose();
+      pedestalMaterial.roughnessMap?.dispose();
+      pedestalMaterial.dispose();
+    },
+    [pedestalMaterial],
+  );
 
   const pedestalY = FLOOR_HEIGHT + PEDESTAL_HEIGHT / 2;
   const textZ = PEDESTAL_DEPTH / 2 + 0.02;
@@ -939,7 +960,7 @@ export default function Scene() {
       sunColor: 0xff33aa,
       waterColor: 0x4fb8c4,
       distortionScale: 2.0,
-      fog: false,
+      fog: true,
     });
 
     waterObject.rotation.x = -Math.PI / 2;
@@ -953,7 +974,11 @@ export default function Scene() {
     getUniforms(water).sunDirection.value.copy(sunDirection);
     const material = skyMesh.material as RawShaderMaterial;
     material.uniforms.uSunDir.value.copy(sunDirection);
-    scene.fog = new Fog(0xf5cedd, 60, 700);
+    // Fog color chosen so that, once mixed in the Water/sky shaders' display
+    // space (the renderer passes the linear value), fully-fogged pixels render
+    // as the sky shader's horizon color (#EBADC2). This makes the distant
+    // ocean melt into the horizon instead of ending in a hard teal edge.
+    scene.fog = new Fog(0xf6d7e2, 60, 700);
 
     return () => {
       scene.fog = null;
@@ -1058,7 +1083,7 @@ export default function Scene() {
         shadow-camera-bottom={-40}
         shadow-bias={-0.0005}
       />
-      <EffectComposer enableNormalPass={false} multisampling={0}>
+      <EffectComposer enableNormalPass={false} multisampling={4}>
         <Bloom
           mipmapBlur
           intensity={effects.bloomIntensity}
