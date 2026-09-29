@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Euler, MathUtils, Vector3 } from "three";
-import type { Footprint, Level } from "../levels";
+import type { Footprint, Level, SpawnPoint } from "../levels";
 
 // First-person kinematic walker: pointer-lock mouse look, WASD / arrows,
 // Space to jump. The level supplies floor height, walkable bounds and
-// colliders. Swapping to a different level object teleports the player to
-// that level's spawn point.
+// colliders. Changing the level or spawn point teleports the player there.
 
 const LOOK_SENSITIVITY = 0.002;
 const PLAYER_EYE_HEIGHT = 1.7;
@@ -34,10 +33,14 @@ export interface PlayerSnapshot {
   lastJumpPeakY: number;
 }
 
-export function usePlayerController(level: Level, frozen = false) {
+export function usePlayerController(
+  level: Level,
+  spawn: SpawnPoint = level.spawn,
+  frozen = false,
+) {
   const { camera, gl } = useThree();
   const keys = useRef(new Set<string>());
-  const yaw = useRef(level.spawn.yaw);
+  const yaw = useRef(spawn.yaw);
   const pitch = useRef(0);
   const isGrounded = useRef(true);
   const jumpWasDown = useRef(false);
@@ -52,33 +55,29 @@ export function usePlayerController(level: Level, frozen = false) {
   const frozenRef = useRef(frozen);
   frozenRef.current = frozen;
   const snapshot = useRef<PlayerSnapshot>({
-    x: level.spawn.x,
+    x: spawn.x,
     y: level.floorY + PLAYER_EYE_HEIGHT,
-    z: level.spawn.z,
+    z: spawn.z,
     velocity: { x: 0, y: 0, z: 0 },
-    yaw: level.spawn.yaw,
+    yaw: spawn.yaw,
     pitch: 0,
     grounded: true,
     jumpCount: 0,
     lastJumpPeakY: level.floorY + PLAYER_EYE_HEIGHT,
   });
 
-  // Spawn (and respawn whenever the level changes).
+  // Spawn (and respawn whenever the level or spawn point changes).
   useEffect(() => {
-    camera.position.set(
-      level.spawn.x,
-      level.floorY + PLAYER_EYE_HEIGHT,
-      level.spawn.z,
-    );
+    camera.position.set(spawn.x, level.floorY + PLAYER_EYE_HEIGHT, spawn.z);
     camera.rotation.order = "YXZ";
-    yaw.current = level.spawn.yaw;
+    yaw.current = spawn.yaw;
     pitch.current = 0;
     velocity.set(0, 0, 0);
     isGrounded.current = true;
     lastJumpPeakY.current = camera.position.y;
-    camera.rotation.set(0, level.spawn.yaw, 0);
+    camera.rotation.set(0, spawn.yaw, 0);
     camera.updateProjectionMatrix();
-  }, [camera, level, velocity]);
+  }, [camera, level, spawn, velocity]);
 
   useEffect(() => {
     // Debug hook for screenshot tooling (scripts/shot.mjs): aim the camera

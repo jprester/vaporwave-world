@@ -7,6 +7,8 @@ import {
 import {
   COLUMN_HALF,
   COLUMN_POSITIONS,
+  DOOR_X,
+  DOOR_Z,
   FLOOR_DEPTH,
   FLOOR_HEIGHT,
   FLOOR_WIDTH,
@@ -19,6 +21,7 @@ import {
   POOL_DEPTH,
   POOL_WIDTH,
 } from "./island/constants";
+import * as CAVE from "./cave/constants";
 
 // A level is everything the player controller needs to walk a world: the
 // floor height, the walkable rectangle, solid footprints to slide around, and
@@ -35,7 +38,15 @@ export interface Level {
   floorY: number;
   bounds: { minX: number; maxX: number; minZ: number; maxZ: number };
   colliders: Footprint[];
-  spawn: { x: number; z: number; yaw: number };
+  spawn: SpawnPoint;
+  // Where the player appears when arriving through the level's door.
+  arrival: SpawnPoint;
+}
+
+export interface SpawnPoint {
+  x: number;
+  z: number;
+  yaw: number;
 }
 
 export const ISLAND_LEVEL: Level = {
@@ -66,6 +77,53 @@ export const ISLAND_LEVEL: Level = {
       w: BOOMBOX_TABLE_WIDTH,
       d: BOOMBOX_TABLE_DEPTH,
     },
+    // the freestanding door
+    { cx: DOOR_X, cz: DOOR_Z, w: 1.9, d: 0.55 },
   ],
   spawn: { x: 0, z: FLOOR_DEPTH / 2 - 5, yaw: 0 },
+  // Just stepped out of the door, facing away from it toward the pool.
+  arrival: { x: DOOR_X, z: DOOR_Z + 3.5, yaw: Math.PI },
+};
+
+const CHAIR_BLOCK_CX =
+  (CAVE.CHAIR_SEATS_X[0] +
+    CAVE.CHAIR_SEATS_X[CAVE.CHAIR_SEATS_X.length - 1]) /
+  2;
+
+export const CAVE_LEVEL: Level = {
+  floorY: 0,
+  bounds: {
+    minX: -CAVE.HALF_W,
+    maxX: CAVE.HALF_W,
+    minZ: -CAVE.HALF_L,
+    maxZ: CAVE.HALF_L,
+  },
+  colliders: [
+    // video wall stand
+    {
+      cx: 0,
+      cz: CAVE.STAND_Z,
+      w: CAVE.WALL_COLS * CAVE.CRT_W + 0.4,
+      d: CAVE.STAND_D,
+    },
+    // chair blocks
+    ...CAVE.CHAIR_ROWS_Z.flatMap((cz) =>
+      [-1, 1].map((side) => ({
+        cx: side * CHAIR_BLOCK_CX,
+        cz,
+        w: CAVE.CHAIR_BLOCK_W,
+        d: CAVE.CHAIR_DEPTH,
+      })),
+    ),
+    ...CAVE.CARTS.map(({ x, z }) => ({
+      cx: x,
+      cz: z,
+      w: CAVE.CART_W,
+      d: CAVE.CART_W,
+    })),
+    // the door itself
+    { cx: CAVE.CAVE_DOOR_X, cz: CAVE.CAVE_DOOR_Z, w: 1.9, d: 0.55 },
+  ],
+  spawn: { x: 0, z: CAVE.HALF_L - 4, yaw: 0 },
+  arrival: { x: 0, z: CAVE.HALF_L - 4, yaw: 0 },
 };

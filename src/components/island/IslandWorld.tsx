@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
-import { useFrame, useLoader, useThree } from "@react-three/fiber";
+import { useFrame, useLoader } from "@react-three/fiber";
 import {
   BackSide,
-  Fog,
   MathUtils,
   Mesh,
   PlaneGeometry,
@@ -16,6 +15,7 @@ import { Water } from "three/examples/jsm/objects/Water.js";
 import { useControls } from "leva";
 import skyVertexShader from "../../shaders/sky.vert.glsl";
 import skyFragmentShader from "../../shaders/sky.frag.glsl";
+import DoorTrigger from "../DoorTrigger";
 import MusicPlayer from "../MusicPlayer";
 import FloatingFloor from "./FloatingFloor";
 import PlatoSign from "./PlatoSign";
@@ -25,12 +25,17 @@ import {
   VaporwaveBust,
   WomanStatue,
 } from "./Props";
-import { OCEAN_SIZE, SUN_AZIMUTH, SUN_ELEVATION } from "./constants";
+import {
+  DOOR_X,
+  DOOR_Z,
+  OCEAN_SIZE,
+  SUN_AZIMUTH,
+  SUN_ELEVATION,
+} from "./constants";
 
 // The island: procedural sky, endless ocean, the tiled platform with its pool,
 // set dressing and the boombox, lit by a low pink sun.
-export default function IslandWorld() {
-  const scene = useThree((s) => s.scene);
+export default function IslandWorld({ active }: { active: boolean }) {
   const waterRef = useRef<Water>(null);
 
   const lights = useControls("Lights", {
@@ -93,16 +98,7 @@ export default function IslandWorld() {
   useEffect(() => {
     water.material.uniforms.sunDirection.value.copy(sunDirection);
     skyMaterial.uniforms.uSunDir.value.copy(sunDirection);
-    // Fog color chosen so that, once mixed in the Water/sky shaders' display
-    // space (the renderer passes the linear value), fully-fogged pixels render
-    // as the sky shader's horizon color (#EBADC2). This makes the distant
-    // ocean melt into the horizon instead of ending in a hard teal edge.
-    scene.fog = new Fog(0xf6d7e2, 60, 700);
-
-    return () => {
-      scene.fog = null;
-    };
-  }, [scene, skyMaterial, sunDirection, water]);
+  }, [skyMaterial, sunDirection, water]);
 
   useFrame((state, delta) => {
     const waterObject = waterRef.current;
@@ -153,7 +149,8 @@ export default function IslandWorld() {
       <VaporwaveBust />
       <WomanStatue />
       <FloorDoor />
-      <MusicPlayer />
+      <DoorTrigger x={DOOR_X} z={DOOR_Z} normal={[0, 1]} active={active} />
+      <MusicPlayer active={active} />
     </group>
   );
 }

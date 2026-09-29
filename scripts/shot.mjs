@@ -20,6 +20,7 @@
 //   --out <path>     default screenshots/shot.png
 //   --yaw <rad>      camera yaw   (0 = looking toward -z, the sun)
 //   --pitch <rad>    camera pitch (+ looks up)
+//   --x <n> --z <n>  stand at this point (both required)
 //   --width <px>     default 1280
 //   --height <px>    default 720
 //   --frames <n>     advanceTime() calls before capture, default 12
@@ -38,6 +39,8 @@ const url = arg("url", "http://localhost:3000/?qa=1");
 const out = arg("out", "screenshots/shot.png");
 const yaw = arg("yaw", null);
 const pitch = arg("pitch", null);
+const posX = arg("x", null);
+const posZ = arg("z", null);
 const width = Number(arg("width", "1280"));
 const height = Number(arg("height", "720"));
 const frames = Number(arg("frames", "12"));
@@ -84,6 +87,13 @@ try {
     await page.evaluate(
       ([y, p]) => window.setCameraOrientation(y, p),
       [Number(yaw ?? 0), Number(pitch ?? 0)],
+    );
+  }
+
+  if (posX !== null && posZ !== null) {
+    await page.evaluate(
+      ([x, z]) => window.setPlayerPosition?.(x, z),
+      [Number(posX), Number(posZ)],
     );
   }
 
