@@ -3,13 +3,14 @@ import { useGLTF } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Box3, Group, Vector3 } from "three";
 import { setDistanceVolume, setNearBoombox } from "./musicStore";
+import { FLOOR_HEIGHT } from "./island/constants";
 
 // Table + boombox + chair arrangement built from .glb models. The boombox is
 // the audio source: a child <DistanceVolume /> reads the player's distance and
 // writes a normalized volume into the music store. Playback/pause/mute state
 // lives outside the Canvas (see musicStore.ts + UI.tsx).
 
-const FLOOR_TOP_Y = 5.2; // must match FLOOR_HEIGHT in Scene.tsx
+const FLOOR_TOP_Y = FLOOR_HEIGHT;
 
 export const BOOMBOX_CENTER_X = 15;
 export const BOOMBOX_CENTER_Z = 18;

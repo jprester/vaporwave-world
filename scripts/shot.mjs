@@ -45,6 +45,8 @@ const settle = Number(arg("wait", "1500"));
 
 const browser = await chromium.launch({
   headless: true,
+  // Optional override when Playwright's bundled browser isn't installed.
+  executablePath: process.env.CHROMIUM_PATH || undefined,
   args: [
     "--use-gl=angle",
     "--use-angle=swiftshader",
