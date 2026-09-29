@@ -180,7 +180,12 @@ export default function IslandFeed({
 
   useEffect(() => {
     window.setFeedSegment = (i: number | null) => {
-      forcedSegment.current = i;
+      // Normalize to a valid segment index; anything non-numeric clears it.
+      forcedSegment.current =
+        i === null || !Number.isFinite(i)
+          ? null
+          : ((Math.floor(i) % PROGRAM.length) + PROGRAM.length) %
+            PROGRAM.length;
     };
     return () => {
       delete window.setFeedSegment;
@@ -198,7 +203,7 @@ export default function IslandFeed({
 
     let { index, local } = segmentAt(showTime.current);
     if (forcedSegment.current !== null) {
-      index = forcedSegment.current % PROGRAM.length;
+      index = forcedSegment.current;
       local = 1;
     }
     const segment = PROGRAM[index];

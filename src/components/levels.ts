@@ -115,12 +115,13 @@ export const CAVE_LEVEL: Level = {
         d: CAVE.CHAIR_DEPTH,
       })),
     ),
-    ...CAVE.CARTS.map(({ x, z }) => ({
-      cx: x,
-      cz: z,
-      w: CAVE.CART_W,
-      d: CAVE.CART_W,
-    })),
+    // Carts are rotated, so collide with the axis-aligned box around the
+    // turned footprint (square, to cover the CRT's tube housing too).
+    ...CAVE.CARTS.map(({ x, z, yaw }) => {
+      const size = CAVE.CART_W;
+      const extent = size * (Math.abs(Math.cos(yaw)) + Math.abs(Math.sin(yaw)));
+      return { cx: x, cz: z, w: extent, d: extent };
+    }),
     // the door itself
     { cx: CAVE.CAVE_DOOR_X, cz: CAVE.CAVE_DOOR_Z, w: 1.9, d: 0.55 },
   ],

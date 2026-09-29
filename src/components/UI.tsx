@@ -229,6 +229,7 @@ export default function UI() {
 function DoorPrompt({ visible }: { visible: boolean }) {
   return (
     <div
+      aria-hidden={!visible}
       style={{
         position: "absolute",
         top: "58%",
