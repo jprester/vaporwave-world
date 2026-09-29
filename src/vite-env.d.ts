@@ -6,6 +6,9 @@ declare global {
     render_game_to_text?: () => string;
     advanceTime?: (ms: number) => void | Promise<void>;
     setCameraOrientation?: (yaw: number, pitch: number) => void;
+    setPlayerPosition?: (x: number, z: number) => void;
+    travel?: () => void;
+    setFeedSegment?: (index: number | null) => void;
   }
 }
 

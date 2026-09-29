@@ -8,6 +8,13 @@ import {
   togglePlay,
   toggleMute,
 } from "./musicStore";
+import {
+  FADE_IN_MS,
+  FADE_OUT_MS,
+  getSnapshot as getWorldSnapshot,
+  subscribe as subscribeWorld,
+  travel,
+} from "./worldStore";
 
 // Fullscreen helpers. Toggling fullscreen makes the experience more immersive
 // and keeps browser chrome out of screen recordings. `requestFullscreen` must
@@ -42,6 +49,11 @@ export default function UI() {
     new URLSearchParams(window.location.search).get("qa") === "1";
 
   const music = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const world = useSyncExternalStore(
+    subscribeWorld,
+    getWorldSnapshot,
+    getWorldSnapshot,
+  );
   const [helpOpen, setHelpOpen] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -64,10 +76,24 @@ export default function UI() {
       } else if (e.code === "KeyF") {
         e.preventDefault();
         toggleFullscreen();
+      } else if (e.code === "Enter" && getWorldSnapshot().nearDoor) {
+        e.preventDefault();
+        travel();
+      }
+    };
+    // While the mouse is captured, a click at the door opens it. (The click
+    // that first captures the mouse is left alone.)
+    const onPointerDown = () => {
+      if (document.pointerLockElement && getWorldSnapshot().nearDoor) {
+        travel();
       }
     };
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("pointerdown", onPointerDown);
+    };
   }, [isQaMode]);
 
   // Keep the button label in sync with the actual fullscreen state, including
@@ -83,8 +109,15 @@ export default function UI() {
     };
   }, [isQaMode]);
 
+  const transition = (
+    <TransitionOverlay
+      phase={world.phase}
+      towardLight={world.destination === "island"}
+    />
+  );
+
   if (isQaMode) {
-    return null;
+    return transition;
   }
 
   return (
@@ -149,6 +182,7 @@ export default function UI() {
             <div style={{ opacity: 0.85 }}>
               P play/pause &nbsp; E next &nbsp; M mute
             </div>
+            <div style={{ opacity: 0.85 }}>Some doors open</div>
             <div style={creditStyle}>
               <span style={{ opacity: 0.7 }}>Made by</span>{" "}
               <strong>J. Prester</strong>
@@ -186,7 +220,63 @@ export default function UI() {
         trackLabel={music.trackLabel}
         visible={music.nearBoombox}
       />
+      <DoorPrompt visible={world.nearDoor && world.phase === "idle"} />
+      {transition}
     </>
+  );
+}
+
+function DoorPrompt({ visible }: { visible: boolean }) {
+  return (
+    <div
+      aria-hidden={!visible}
+      style={{
+        position: "absolute",
+        top: "58%",
+        left: "50%",
+        transform: "translateX(-50%)",
+        color: "white",
+        fontFamily: "monospace",
+        fontSize: 13,
+        letterSpacing: 2,
+        background: "rgba(0, 0, 0, 0.45)",
+        padding: "8px 14px",
+        borderRadius: 6,
+        opacity: visible ? 1 : 0,
+        transition: "opacity 0.3s ease",
+        pointerEvents: "none",
+      }}>
+      Click or Enter to open
+    </div>
+  );
+}
+
+// Full-screen fade between worlds. Walking into the cave fades to darkness;
+// walking back out fades through a blinding pink-white, like stepping into
+// sunlight.
+function TransitionOverlay({
+  phase,
+  towardLight,
+}: {
+  phase: "idle" | "out" | "in";
+  towardLight: boolean;
+}) {
+  const covering = phase === "out";
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 800,
+        pointerEvents: "none",
+        background: towardLight
+          ? "radial-gradient(circle at 50% 45%, #ffffff 0%, #ffe6f2 45%, #ffc2de 100%)"
+          : "#07040a",
+        opacity: covering ? 1 : 0,
+        transition: `opacity ${covering ? FADE_OUT_MS : FADE_IN_MS}ms ease-in-out`,
+      }}
+    />
   );
 }
 

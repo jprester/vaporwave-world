@@ -3,13 +3,14 @@ import { useGLTF } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Box3, Group, Vector3 } from "three";
 import { setDistanceVolume, setNearBoombox } from "./musicStore";
+import { FLOOR_HEIGHT } from "./island/constants";
 
 // Table + boombox + chair arrangement built from .glb models. The boombox is
 // the audio source: a child <DistanceVolume /> reads the player's distance and
 // writes a normalized volume into the music store. Playback/pause/mute state
 // lives outside the Canvas (see musicStore.ts + UI.tsx).
 
-const FLOOR_TOP_Y = 5.2; // must match FLOOR_HEIGHT in Scene.tsx
+const FLOOR_TOP_Y = FLOOR_HEIGHT;
 
 export const BOOMBOX_CENTER_X = 15;
 export const BOOMBOX_CENTER_Z = 18;
@@ -25,11 +26,16 @@ const AUDIO_MAX_DISTANCE = 45;
 const INTERACT_DISTANCE = 9;
 const FOCUS_DOT_THRESHOLD = 0.55; // ~57° half-angle
 
-function DistanceVolume() {
+function DistanceVolume({ active }: { active: boolean }) {
   const camera = useThree((s) => s.camera);
   const camDir = useRef(new Vector3());
 
   useFrame(() => {
+    // Away from the island, the cave sets the music's level itself.
+    if (!active) {
+      setNearBoombox(false);
+      return;
+    }
     const dx = camera.position.x - BOOMBOX_CENTER_X;
     const dz = camera.position.z - BOOMBOX_CENTER_Z;
     const dist = Math.sqrt(dx * dx + dz * dz);
@@ -58,7 +64,7 @@ function DistanceVolume() {
   return null;
 }
 
-export default function MusicPlayer() {
+export default function MusicPlayer({ active }: { active: boolean }) {
   const { scene: tableScene } = useGLTF("/models/desk/plastic-table.glb");
   const { scene: boomboxScene } = useGLTF("/models/misc/retro-boombox.002.glb");
   const { scene: chairScene } = useGLTF("/models/chair/platic-chair.glb");
@@ -97,7 +103,7 @@ export default function MusicPlayer() {
         ]}
         rotation={[0, CHAIR_YAW, 0]}
       />
-      <DistanceVolume />
+      <DistanceVolume active={active} />
     </>
   );
 }

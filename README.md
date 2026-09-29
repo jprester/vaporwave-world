@@ -11,6 +11,7 @@ A first-person **vaporwave 3D experience** — a liminal poolroom platform drift
 - **Floating poolroom** — a tiled platform with a recessed pool of reflective water
 - **Set dressing** — doric columns and a marble bust raised on a tall pedestal
 - **Diegetic music** — a boombox plays vaporwave/lo-fi tracks; volume fades with your distance to it, and controls appear when you walk close
+- **The door** — the freestanding door opens onto the cave: a closed-down hotel conference room where rows of empty chairs face a wall of CRTs tuned to *Plato TV*, a live broadcast of the island that cuts between shots of the sun, the statues, the pool and the door you came through, with captions, a ticker and the occasional stand-by card. The music follows you in, playing tinny out of the TVs over the room's hum and air handling
 - **First-person walk camera** — custom kinematic controller with acceleration, gravity, and jumping
 - **Vaporwave grade** — ACES filmic tone mapping plus bloom, chromatic aberration, film noise, and vignette
 
@@ -55,6 +56,8 @@ Then open http://localhost:3000 in your browser. Click the canvas to capture the
 | P     | Play / pause music |
 | E     | Next track         |
 | M     | Mute / unmute      |
+| Click / Enter | Open a door you're facing |
+| F     | Fullscreen         |
 
 ## Project structure
 
@@ -64,14 +67,23 @@ src/
 ├── App.tsx               # Canvas, camera, tone mapping, Leva panel
 ├── shaders/
 │   ├── sky.vert.glsl     # Sky dome vertex shader
-│   └── sky.frag.glsl     # Procedural sunset / sky color
+│   ├── sky.frag.glsl     # Procedural sunset / sky color
+│   └── crt.*.glsl        # CRT screen: curvature, scanlines, static
 └── components/
-    ├── Scene.tsx         # The whole world: ocean, sky, pool, columns,
-    │                     #   pedestal, lighting, postprocessing, and the
-    │                     #   first-person walk camera
+    ├── Scene.tsx         # Mounts both worlds, shows the current one; per-world
+    │                     #   fog, camera near plane and acoustics
+    ├── worldStore.ts     # Current world + door transition (outside Canvas)
+    ├── levels.ts         # Floor height, bounds, colliders, spawns per world
+    ├── DoorTrigger.tsx   # "At the door and looking at it" detection
+    ├── IslandFeed.tsx    # "Plato TV": island shots + broadcast graphics for the CRTs
+    ├── Effects.tsx       # Bloom, chromatic aberration, vignette, noise
+    ├── player/           # First-person walk controller
+    ├── island/           # Ocean, sky, platform + pool, sign, props
+    ├── cave/             # Conference room, procedural carpet/wallpaper,
+    │                     #   CRT video wall, chairs, EXIT sign
     ├── MusicPlayer.tsx   # Boombox: distance-based volume, proximity detection
-    ├── musicStore.ts     # Track list + play/pause/mute state (outside Canvas)
-    └── UI.tsx            # HUD overlay + boombox music controls
+    ├── musicStore.ts     # Tracks, play/pause/mute, Web Audio TV speaker + ambience
+    └── UI.tsx            # HUD, music controls, door prompt, fade overlay
 
 public/
 ├── models/               # GLB props (bust, columns, boombox, ...)
@@ -89,7 +101,7 @@ npm run dev                                            # serves :3000
 npm run shot -- --out screenshots/sun.png --pitch 0.05 # capture a frame
 ```
 
-Appending `?qa=1` to the URL hides the Leva panel and HUD for clean captures. See `scripts/shot.mjs` for all flags (`--yaw`, `--pitch`, `--frames`, etc.).
+Appending `?qa=1` to the URL hides the Leva panel and HUD for clean captures, and `?world=cave` starts in the cave. See `scripts/shot.mjs` for all flags (`--yaw`, `--pitch`, `--x`/`--z`, `--frames`, etc.). If Playwright's bundled browser isn't installed, point `CHROMIUM_PATH` at a Chromium binary.
 
 ## Credits
 
