@@ -11,6 +11,9 @@ uniform float uSeed;
 uniform float uMode;
 uniform float uBrightness;
 
+// The feed is linear HDR, like the main view before its effects; the
+// postprocessing chain tone-maps the whole frame, screens included.
+
 float hash(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
   p += dot(p, p + 45.32);

@@ -45,6 +45,94 @@ let fadeGain = 1;
 let fadeRaf = 0;
 let autoStartArmed = false;
 
+// Web Audio graph, built on the first play (it needs a user gesture):
+//   <audio> elements → musicGain → lowpass → master (mute) → speakers
+//   fluorescent hum oscillators → humGain → master
+// The lowpass is wide open on the island; in the cave it closes so the music
+// sounds like it's coming through the ceiling. If Web Audio is unavailable,
+// volume falls back to the elements' own volume and there's no muffling.
+export type Acoustics = "open" | "muffled";
+const OPEN_CUTOFF = 20000;
+const MUFFLED_CUTOFF = 520;
+const HUM_LEVEL = 0.03;
+let acoustics: Acoustics = "open";
+let audioCtx: AudioContext | null = null;
+let graphFailed = false;
+let musicGain: GainNode | null = null;
+let lowpass: BiquadFilterNode | null = null;
+let master: GainNode | null = null;
+let humGain: GainNode | null = null;
+
+function ensureGraph() {
+  if (audioCtx || graphFailed || audioElements.length === 0) return;
+  try {
+    const Ctx =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (!Ctx) throw new Error("no AudioContext");
+    const ctx = new Ctx();
+    musicGain = ctx.createGain();
+    musicGain.gain.value = 0;
+    lowpass = ctx.createBiquadFilter();
+    lowpass.type = "lowpass";
+    lowpass.Q.value = 0.9;
+    master = ctx.createGain();
+    humGain = ctx.createGain();
+    humGain.gain.value = 0;
+
+    musicGain.connect(lowpass).connect(master).connect(ctx.destination);
+    humGain.connect(master);
+    for (const a of audioElements) {
+      ctx.createMediaElementSource(a).connect(musicGain);
+      a.volume = 1;
+    }
+
+    // Mains hum: a 60 Hz fundamental plus a filtered 120 Hz buzz.
+    const hum = ctx.createOscillator();
+    hum.frequency.value = 60;
+    const buzz = ctx.createOscillator();
+    buzz.type = "sawtooth";
+    buzz.frequency.value = 120;
+    const buzzFilter = ctx.createBiquadFilter();
+    buzzFilter.type = "lowpass";
+    buzzFilter.frequency.value = 380;
+    const buzzGain = ctx.createGain();
+    buzzGain.gain.value = 0.35;
+    hum.connect(humGain);
+    buzz.connect(buzzFilter).connect(buzzGain).connect(humGain);
+    hum.start();
+    buzz.start();
+
+    audioCtx = ctx;
+    applyAcoustics(true);
+  } catch (err) {
+    console.warn("Web Audio unavailable, music won't be filtered:", err);
+    graphFailed = true;
+  }
+}
+
+function applyAcoustics(immediate = false) {
+  if (!audioCtx || !lowpass || !humGain) return;
+  const now = audioCtx.currentTime;
+  const muffled = acoustics === "muffled";
+  const cutoff = muffled ? MUFFLED_CUTOFF : OPEN_CUTOFF;
+  const hum = muffled ? HUM_LEVEL : 0;
+  if (immediate) {
+    lowpass.frequency.value = cutoff;
+    humGain.gain.value = hum;
+  } else {
+    lowpass.frequency.setTargetAtTime(cutoff, now, 0.35);
+    humGain.gain.setTargetAtTime(hum, now, 0.6);
+  }
+}
+
+export function setAcoustics(next: Acoustics) {
+  if (next === acoustics) return;
+  acoustics = next;
+  applyAcoustics();
+}
+
 let snapshot: Snapshot = {
   isPlaying: false,
   isMuted: false,
@@ -89,6 +177,18 @@ function effectiveVolume() {
   return isMuted ? 0 : distanceVolume * fadeGain;
 }
 
+// Writes the volume to the gain node when the graph exists, else to the
+// current element. Mute lives on the master gain so it silences the hum too.
+function setOutputVolume(v: number) {
+  if (audioCtx && musicGain && master) {
+    const now = audioCtx.currentTime;
+    musicGain.gain.setTargetAtTime(distanceVolume * fadeGain, now, 0.03);
+    master.gain.setTargetAtTime(isMuted ? 0 : 1, now, 0.03);
+  } else {
+    audioElements[currentIndex].volume = v;
+  }
+}
+
 function startFadeIn() {
   if (fadeRaf) cancelAnimationFrame(fadeRaf);
   fadeGain = 0;
@@ -106,12 +206,16 @@ function writeVolume(force = false) {
   if (audioElements.length === 0) return;
   const v = effectiveVolume();
   if (!force && Math.abs(v - lastWrittenVolume) < 0.005) return;
-  audioElements[currentIndex].volume = v;
+  setOutputVolume(v);
   lastWrittenVolume = v;
 }
 
 export function play() {
   ensureAudio();
+  ensureGraph();
+  if (audioCtx?.state === "suspended") {
+    audioCtx.resume().catch(() => undefined);
+  }
   const a = audioElements[currentIndex];
   if (!hasStarted) {
     a.currentTime = 0;

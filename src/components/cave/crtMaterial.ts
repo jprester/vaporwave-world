@@ -26,7 +26,7 @@ export function createCrtMaterial(
   shared: SharedCrtUniforms,
   seed: number,
   mode: number,
-  brightness = 1.6,
+  brightness = 1.0,
 ) {
   return new ShaderMaterial({
     vertexShader: crtVertexShader,
