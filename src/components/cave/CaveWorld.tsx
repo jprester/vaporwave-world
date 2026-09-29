@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useGLTF } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import {
   CanvasTexture,
   Color,
@@ -10,9 +10,11 @@ import {
   MeshStandardMaterial,
   PointLight,
   SRGBColorSpace,
-  Texture,
+  Vector3,
 } from "three";
+import type { FeedTextures } from "../IslandFeed";
 import DoorTrigger from "../DoorTrigger";
+import { setListenerPose, setTvSource } from "../musicStore";
 import {
   CRT_FEED,
   CRT_NO_SIGNAL,
@@ -55,15 +57,16 @@ import {
 
 interface Props {
   active: boolean;
-  // Live render of the island (see IslandFeed). Null until it first renders.
-  feed: Texture | null;
+  // Live broadcast of the island (see IslandFeed). Null until it mounts.
+  feed: FeedTextures | null;
 }
 
 export default function CaveWorld({ active, feed }: Props) {
   const shared = useMemo(() => createSharedCrtUniforms(), []);
 
   useEffect(() => {
-    shared.uFeed.value = feed;
+    shared.uFeed.value = feed?.feed ?? null;
+    shared.uOverlay.value = feed?.overlay ?? null;
     shared.uHasFeed.value = feed ? 1 : 0;
   }, [feed, shared]);
 
@@ -88,6 +91,7 @@ export default function CaveWorld({ active, feed }: Props) {
       <Chairs />
       <CaveDoor />
       <ExitSign />
+      <TvSpeaker active={active} />
       <DoorTrigger
         x={CAVE_DOOR_X}
         z={CAVE_DOOR_Z}
@@ -96,6 +100,26 @@ export default function CaveWorld({ active, feed }: Props) {
       />
     </group>
   );
+}
+
+// The music plays from the video wall: place the sound source there and keep
+// the listener on the player's head while the cave is the current world.
+function TvSpeaker({ active }: { active: boolean }) {
+  const camera = useThree((s) => s.camera);
+  const forward = useMemo(() => new Vector3(), []);
+
+  useEffect(() => {
+    setTvSource(0, STAND_H + (WALL_ROWS * CRT_H) / 2, STAND_Z);
+  }, []);
+
+  useFrame(() => {
+    if (!active) return;
+    camera.getWorldDirection(forward);
+    const p = camera.position;
+    setListenerPose(p.x, p.y, p.z, forward.x, forward.y, forward.z);
+  });
+
+  return null;
 }
 
 function Room() {

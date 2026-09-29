@@ -11,7 +11,7 @@ A first-person **vaporwave 3D experience** — a liminal poolroom platform drift
 - **Floating poolroom** — a tiled platform with a recessed pool of reflective water
 - **Set dressing** — doric columns and a marble bust raised on a tall pedestal
 - **Diegetic music** — a boombox plays vaporwave/lo-fi tracks; volume fades with your distance to it, and controls appear when you walk close
-- **The door** — the freestanding door opens onto the cave: a closed-down hotel conference room where rows of empty chairs face a wall of CRTs, all showing the island live. The music follows you in, muffled, as if through the ceiling
+- **The door** — the freestanding door opens onto the cave: a closed-down hotel conference room where rows of empty chairs face a wall of CRTs tuned to *Plato TV*, a live broadcast of the island that cuts between shots of the sun, the statues, the pool and the door you came through, with captions, a ticker and the occasional stand-by card. The music follows you in, playing tinny out of the TVs over the room's hum and air handling
 - **First-person walk camera** — custom kinematic controller with acceleration, gravity, and jumping
 - **Vaporwave grade** — ACES filmic tone mapping plus bloom, chromatic aberration, film noise, and vignette
 
@@ -75,14 +75,14 @@ src/
     ├── worldStore.ts     # Current world + door transition (outside Canvas)
     ├── levels.ts         # Floor height, bounds, colliders, spawns per world
     ├── DoorTrigger.tsx   # "At the door and looking at it" detection
-    ├── IslandFeed.tsx    # Renders the island to a small texture for the CRTs
+    ├── IslandFeed.tsx    # "Plato TV": island shots + broadcast graphics for the CRTs
     ├── Effects.tsx       # Bloom, chromatic aberration, vignette, noise
     ├── player/           # First-person walk controller
     ├── island/           # Ocean, sky, platform + pool, sign, props
     ├── cave/             # Conference room, procedural carpet/wallpaper,
     │                     #   CRT video wall, chairs, EXIT sign
     ├── MusicPlayer.tsx   # Boombox: distance-based volume, proximity detection
-    ├── musicStore.ts     # Tracks, play/pause/mute, Web Audio lowpass + hum
+    ├── musicStore.ts     # Tracks, play/pause/mute, Web Audio TV speaker + ambience
     └── UI.tsx            # HUD, music controls, door prompt, fade overlay
 
 public/

@@ -6,10 +6,12 @@ export const CRT_FEED = 0;
 export const CRT_STATIC = 1;
 export const CRT_NO_SIGNAL = 2;
 
-// Uniforms every screen shares: one feed texture and one clock. Each screen's
+// Uniforms every screen shares: the feed and its broadcast graphics, and one
+// clock. Each screen's
 // material points at these same objects, so updating them updates all sets.
 export interface SharedCrtUniforms {
   uFeed: { value: Texture | null };
+  uOverlay: { value: Texture | null };
   uHasFeed: { value: number };
   uTime: { value: number };
 }
@@ -17,6 +19,7 @@ export interface SharedCrtUniforms {
 export function createSharedCrtUniforms(): SharedCrtUniforms {
   return {
     uFeed: { value: null },
+    uOverlay: { value: null },
     uHasFeed: { value: 0 },
     uTime: { value: 0 },
   };

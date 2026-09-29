@@ -5,6 +5,7 @@
 varying vec2 vUv;
 
 uniform sampler2D uFeed;
+uniform sampler2D uOverlay;
 uniform float uHasFeed;
 uniform float uTime;
 uniform float uSeed;
@@ -43,7 +44,11 @@ void main() {
     col.r = texture2D(uFeed, uv + vec2(0.0015, 0.0)).r;
     col.g = texture2D(uFeed, uv).g;
     col.b = texture2D(uFeed, uv - vec2(0.0015, 0.0)).b;
-    // Until the feed has rendered once, show a dim idle tube.
+    // Broadcast graphics (logo, captions, ticker, stand-by card) on top,
+    // lifted a little so they read against the bright HDR picture.
+    vec4 graphics = texture2D(uOverlay, uv);
+    col = mix(col, graphics.rgb * 1.5, graphics.a);
+    // Until the feed exists, show a dim idle tube.
     col = mix(vec3(0.02, 0.02, 0.03), col, uHasFeed);
   } else if (uMode < 1.5) {
     float n = hash(floor(uv * vec2(160.0, 120.0)) + floor(t * 24.0));

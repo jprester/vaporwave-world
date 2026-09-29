@@ -6,16 +6,10 @@ import {
   useSyncExternalStore,
 } from "react";
 import { useThree } from "@react-three/fiber";
-import {
-  Fog,
-  Group,
-  PerspectiveCamera,
-  Texture,
-  WebGLRenderTarget,
-} from "three";
+import { Fog, Group, PerspectiveCamera } from "three";
 import Effects from "./Effects";
 import CaveWorld from "./cave/CaveWorld";
-import IslandFeed from "./IslandFeed";
+import IslandFeed, { type FeedTextures } from "./IslandFeed";
 import IslandWorld from "./island/IslandWorld";
 import { CAVE_LEVEL, ISLAND_LEVEL } from "./levels";
 import { setAcoustics, setDistanceVolume } from "./musicStore";
@@ -36,9 +30,10 @@ const FOG: Record<WorldId, Fog> = {
   cave: new Fog(0x160e1c, 9, 46),
 };
 const CAMERA_NEAR: Record<WorldId, number> = { island: 1, cave: 0.05 };
-// In the cave the boombox is somewhere overhead: a steady, muffled level.
+// In the cave the music comes from the video wall and its falloff is handled
+// by the 3D panner (see musicStore), so the base level is simply full.
 // (On the island, MusicPlayer sets the level from distance every frame.)
-const CAVE_MUSIC_LEVEL = 0.8;
+const CAVE_MUSIC_LEVEL = 1;
 
 export default function Scene() {
   const { camera, gl, scene } = useThree();
@@ -53,18 +48,15 @@ export default function Scene() {
 
   const islandGroup = useRef<Group>(null);
   const caveGroup = useRef<Group>(null);
-  const [feed, setFeed] = useState<Texture | null>(null);
-  const onFeedTarget = useCallback(
-    (target: WebGLRenderTarget) => setFeed(target.texture),
-    [],
-  );
+  const [feed, setFeed] = useState<FeedTextures | null>(null);
+  const onFeedTextures = useCallback((t: FeedTextures) => setFeed(t), []);
 
   useEffect(() => {
     scene.fog = FOG[world];
     const cam = camera as PerspectiveCamera;
     cam.near = CAMERA_NEAR[world];
     cam.updateProjectionMatrix();
-    setAcoustics(world === "cave" ? "muffled" : "open");
+    setAcoustics(world === "cave" ? "tv" : "open");
     if (world === "cave") setDistanceVolume(CAVE_MUSIC_LEVEL);
     return () => {
       scene.fog = null;
@@ -105,7 +97,7 @@ export default function Scene() {
         island={islandGroup}
         cave={caveGroup}
         islandFog={FOG.island}
-        onTarget={onFeedTarget}
+        onTextures={onFeedTextures}
       />
       <Effects />
     </>

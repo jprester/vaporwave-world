@@ -8,6 +8,7 @@ declare global {
     setCameraOrientation?: (yaw: number, pitch: number) => void;
     setPlayerPosition?: (x: number, z: number) => void;
     travel?: () => void;
+    setFeedSegment?: (index: number | null) => void;
   }
 }
 
