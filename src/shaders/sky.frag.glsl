@@ -39,12 +39,14 @@ void main() {
   vec3 dir = normalize(vWorldPosition);
   float h = dir.y;
 
-  // Sky gradient: warm peach-pink horizon -> muted lavender mid -> blue-grey top (adjusted to match reference image)
-  vec3 skyHorizon = vec3(0.92, 0.68, 0.76);
-  vec3 skyMid     = vec3(0.78, 0.66, 0.78);
-  vec3 skyTop     = vec3(0.60, 0.62, 0.73);
-  vec3 color = mix(skyHorizon, skyMid, smoothstep(0.0, 0.45, h));
-  color = mix(color, skyTop, smoothstep(0.25, 0.95, h));
+  // Sky gradient: saturated pink horizon band -> lavender mid -> cool
+  // periwinkle blue-grey top. The cool zenith is what makes the pink band and
+  // the sun read as glowing instead of washing the whole frame pink.
+  vec3 skyHorizon = vec3(0.97, 0.60, 0.76);
+  vec3 skyMid     = vec3(0.74, 0.65, 0.81);
+  vec3 skyTop     = vec3(0.47, 0.55, 0.72);
+  vec3 color = mix(skyHorizon, skyMid, smoothstep(0.0, 0.32, h));
+  color = mix(color, skyTop, smoothstep(0.20, 0.85, h));
 
   // === RETRO SUN ===
   vec3 sunDir = normalize(uSunDir);
@@ -58,14 +60,16 @@ void main() {
     // yNorm goes from 0.0 (bottom of sun) to 1.0 (top of sun)
     float yNorm = clamp((dir.y - sunDir.y) / sunR * 0.5 + 0.5, 0.0, 1.0);
 
-    // Neon cyan bottom -> hot core -> magenta top (classic synthwave ramp)
-    vec3 cyan    = vec3(0.30, 0.85, 1.0);
-    vec3 magenta = vec3(1.0, 0.35, 0.7);
+    // Neon cyan bottom -> hot core -> magenta top (classic synthwave ramp).
+    // Values deliberately exceed 1.0 so the HDR composer's bloom pass picks
+    // the disc up and it reads as emissive, like the reference renders.
+    vec3 cyan    = vec3(0.35, 1.05, 1.25);
+    vec3 magenta = vec3(1.2, 0.42, 0.85);
     vec3 sunColor = mix(cyan, magenta, smoothstep(0.0, 1.0, yNorm));
 
     // Bright near-white band just above the equator where pink meets cyan
     float core = exp(-pow((yNorm - 0.55) * 6.5, 2.0));
-    sunColor += vec3(0.4, 0.3, 0.4) * core;
+    sunColor += vec3(0.45, 0.35, 0.45) * core;
 
     // Horizontal scan lines confined to the lower (cyan) half; dissolve toward the bottom
     float scanMask = 1.0;

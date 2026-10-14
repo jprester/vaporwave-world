@@ -121,7 +121,7 @@ export default function FloatingFloor({ sunDirection }: { sunDirection: Vector3 
         offsetY,
       ),
       normalScale: new Vector2(0.18, 0.18),
-      color: "#e8d0d8",
+      color: "#f3e2e8",
       roughness: 0.15,
       metalness: 0,
       // Clearcoat is the wet/glazed varnish layer on top of the ceramic base.
