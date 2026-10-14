@@ -30,7 +30,7 @@ export default function PlatoSign() {
         repeatY,
       ),
       normalScale: new Vector2(0.08, 0.08),
-      color: "#ead4dc",
+      color: "#f5e8ee",
       roughness: 0.15,
       metalness: 0,
       clearcoat: 0.85,

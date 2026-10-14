@@ -6,9 +6,9 @@ import { useProgress } from "@react-three/drei";
 //   sky gradient  → src/shaders/sky.frag.glsl (skyTop / skyMid / skyHorizon)
 //   neon pinks    → Scene.tsx (outlineColor #ff7cc8, neon text #ff5cb0, dir light #ff6ea5)
 //   sun magenta / cyan rim → sky.frag.glsl sun colors
-const SKY_TOP = "#999eba";
-const SKY_MID = "#c7a8c7";
-const SKY_HORIZON = "#ebadc2";
+const SKY_TOP = "#788cb8";
+const SKY_MID = "#bda6cf";
+const SKY_HORIZON = "#f799c2";
 const NEON_PINK = "#ff5cb0";
 const NEON_PINK_SOFT = "#ff7cc8";
 const SUN_MAGENTA = "#ff59b2";
