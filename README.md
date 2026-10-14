@@ -12,6 +12,7 @@ A first-person **vaporwave 3D experience** — a liminal poolroom platform drift
 - **Set dressing** — doric columns and a marble bust raised on a tall pedestal
 - **Diegetic music** — a boombox plays vaporwave/lo-fi tracks; volume fades with your distance to it, and controls appear when you walk close
 - **The door** — the freestanding door opens onto the cave: a closed-down hotel conference room where rows of empty chairs face a wall of CRTs tuned to *Plato TV*, a live broadcast of the island that cuts between shots of the sun, the statues, the pool and the door you came through, with captions, a ticker and the occasional stand-by card. The music follows you in, playing tinny out of the TVs over the room's hum and air handling
+- **Further back** — the cave has more than one door. What's behind the second one is best found in person; the music follows you there too, in a room of its own. (Spoilers, and notes for contributors, are in [docs/WORLD.md](docs/WORLD.md).)
 - **First-person walk camera** — custom kinematic controller with acceleration, gravity, and jumping
 - **Vaporwave grade** — ACES filmic tone mapping plus bloom, chromatic aberration, film noise, and vignette
 
@@ -70,20 +71,28 @@ src/
 │   ├── sky.frag.glsl     # Procedural sunset / sky color
 │   └── crt.*.glsl        # CRT screen: curvature, scanlines, static
 └── components/
-    ├── Scene.tsx         # Mounts both worlds, shows the current one; per-world
+    ├── Scene.tsx         # Mounts every world, shows the current one; per-world
     │                     #   fog, camera near plane and acoustics
-    ├── worldStore.ts     # Current world + door transition (outside Canvas)
-    ├── levels.ts         # Floor height, bounds, colliders, spawns per world
-    ├── DoorTrigger.tsx   # "At the door and looking at it" detection
+    ├── worldStore.ts     # Current world, which door leads where, and the
+    │                     #   transition between worlds (outside Canvas)
+    ├── levels.ts         # Floor height, bounds, colliders, spawn and
+    │                     #   per-door arrival points for each world
+    ├── DoorTrigger.tsx   # "At this door and looking at it" detection
     ├── IslandFeed.tsx    # "Plato TV": island shots + broadcast graphics for the CRTs
     ├── Effects.tsx       # Bloom, chromatic aberration, vignette, noise
     ├── player/           # First-person walk controller
     ├── island/           # Ocean, sky, platform + pool, sign, props
     ├── cave/             # Conference room, procedural carpet/wallpaper,
-    │                     #   CRT video wall, chairs, EXIT sign
+    │                     #   CRT video wall, chairs, EXIT sign, staff door
+    ├── stockroom/        # The world behind the staff door: room shell,
+    │                     #   stock, procedural textures, fitted model clones
     ├── MusicPlayer.tsx   # Boombox: distance-based volume, proximity detection
-    ├── musicStore.ts     # Tracks, play/pause/mute, Web Audio TV speaker + ambience
+    ├── musicStore.ts     # Tracks, play/pause/mute, Web Audio acoustics per world
+    │                     #   (open air, TV speaker, PA + hall reverb) + ambience
     └── UI.tsx            # HUD, music controls, door prompt, fade overlay
+
+docs/
+└── WORLD.md              # World bible: concept, rules, log of each round (spoilers)
 
 public/
 ├── models/               # GLB props (bust, columns, boombox, ...)
@@ -101,7 +110,7 @@ npm run dev                                            # serves :3000
 npm run shot -- --out screenshots/sun.png --pitch 0.05 # capture a frame
 ```
 
-Appending `?qa=1` to the URL hides the Leva panel and HUD for clean captures, and `?world=cave` starts in the cave. See `scripts/shot.mjs` for all flags (`--yaw`, `--pitch`, `--x`/`--z`, `--frames`, etc.). If Playwright's bundled browser isn't installed, point `CHROMIUM_PATH` at a Chromium binary.
+Appending `?qa=1` to the URL hides the Leva panel and HUD for clean captures, and `?world=cave` or `?world=stockroom` starts in that world. In QA mode, `window.travel("cave")` (and so on) goes through a door from the console. See `scripts/shot.mjs` for all flags (`--yaw`, `--pitch`, `--x`/`--z`, `--frames`, etc.). If Playwright's bundled browser isn't installed, point `CHROMIUM_PATH` at a Chromium binary.
 
 ## Credits
 

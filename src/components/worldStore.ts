@@ -1,8 +1,13 @@
 // World store: which world the player is in and the door transition between
 // them. Like musicStore, it lives outside the Canvas so both the DOM overlay
 // (UI.tsx) and the R3F scene read the same state via useSyncExternalStore.
+//
+// Worlds are joined by doors. Each door names the world it leads to; the
+// destination places the player by the door they came through (see the
+// per-origin arrivals in levels.ts).
 
-export type WorldId = "island" | "cave";
+export const WORLD_IDS = ["island", "cave", "stockroom"] as const;
+export type WorldId = (typeof WORLD_IDS)[number];
 
 // idle → out (screen fades to the destination's color) → world swaps →
 // in (fades back) → idle.
@@ -11,23 +16,46 @@ export type TransitionPhase = "idle" | "out" | "in";
 export const FADE_OUT_MS = 900;
 export const FADE_IN_MS = 1400;
 
+// Where a world's doors lead, in the order the debug hook falls back to when
+// travel() is called away from any door.
+const DOORS: Record<WorldId, WorldId[]> = {
+  island: ["cave"],
+  cave: ["island", "stockroom"],
+  stockroom: ["cave"],
+};
+
+// The world you'd have come from when starting somewhere via ?world=.
+const DEFAULT_ORIGIN: Record<WorldId, WorldId | null> = {
+  island: null,
+  cave: "island",
+  stockroom: "cave",
+};
+
 interface Snapshot {
   world: WorldId;
   // Where the current transition is heading (equals `world` when idle).
   destination: WorldId;
   phase: TransitionPhase;
-  // False until the first trip: the island's first spawn is the opening view,
-  // later arrivals put the player in front of its door.
-  arrivedByDoor: boolean;
-  nearDoor: boolean;
+  // The world the player last came from, or null before the first trip: the
+  // island's first spawn is the opening view, later arrivals put the player
+  // in front of the door they came through.
+  cameFrom: WorldId | null;
+  // Destination of the door the player is at and looking at, if any.
+  nearDoor: WorldId | null;
+  // Which trigger set nearDoor. Two doors can lead to the same world (the
+  // island's and the stockroom's both go to the cave), so a trigger may only
+  // clear the state it set itself.
+  nearDoorOwner: string | null;
 }
 
+const start = initialWorld();
 let snapshot: Snapshot = {
-  world: initialWorld(),
-  destination: initialWorld(),
+  world: start,
+  destination: start,
   phase: "idle",
-  arrivedByDoor: initialWorld() !== "island",
-  nearDoor: false,
+  cameFrom: DEFAULT_ORIGIN[start],
+  nearDoor: null,
+  nearDoorOwner: null,
 };
 
 const listeners = new Set<() => void>();
@@ -37,26 +65,39 @@ function update(patch: Partial<Snapshot>) {
   listeners.forEach((l) => l());
 }
 
-// ?world=cave starts in the cave (handy for screenshots and debugging).
+// ?world=cave or ?world=stockroom starts there (screenshots and debugging).
 function initialWorld(): WorldId {
   if (typeof window === "undefined") return "island";
   const w = new URLSearchParams(window.location.search).get("world");
-  return w === "cave" ? "cave" : "island";
+  return (WORLD_IDS as readonly string[]).includes(w ?? "")
+    ? (w as WorldId)
+    : "island";
 }
 
-export function travel() {
+// Go through a door. Without an argument, uses the door the player is at, or
+// (for the debug hook) the current world's first door.
+export function travel(to?: WorldId) {
   if (snapshot.phase !== "idle") return;
-  const destination: WorldId = snapshot.world === "island" ? "cave" : "island";
-  update({ phase: "out", destination, nearDoor: false });
+  const from = snapshot.world;
+  const destination = to ?? snapshot.nearDoor ?? DOORS[from][0];
+  if (destination === from || !DOORS[from].includes(destination)) return;
+  update({ phase: "out", destination, nearDoor: null, nearDoorOwner: null });
   window.setTimeout(() => {
-    update({ world: destination, phase: "in", arrivedByDoor: true });
+    update({ world: destination, phase: "in", cameFrom: from });
     window.setTimeout(() => update({ phase: "idle" }), FADE_IN_MS);
   }, FADE_OUT_MS);
 }
 
-export function setNearDoor(v: boolean) {
-  if (v === snapshot.nearDoor) return;
-  update({ nearDoor: v });
+// Each DoorTrigger reports for its own door (identified by `owner`), so doors
+// in other worlds, or other doors leading to the same place, never clear it.
+export function setNearDoor(owner: string, door: WorldId, near: boolean) {
+  if (near) {
+    if (snapshot.nearDoorOwner !== owner || snapshot.nearDoor !== door) {
+      update({ nearDoor: door, nearDoorOwner: owner });
+    }
+  } else if (snapshot.nearDoorOwner === owner) {
+    update({ nearDoor: null, nearDoorOwner: null });
+  }
 }
 
 export function subscribe(listener: () => void) {

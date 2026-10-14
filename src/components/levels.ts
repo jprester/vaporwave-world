@@ -22,6 +22,8 @@ import {
   POOL_WIDTH,
 } from "./island/constants";
 import * as CAVE from "./cave/constants";
+import * as STOCK from "./stockroom/constants";
+import type { WorldId } from "./worldStore";
 
 // A level is everything the player controller needs to walk a world: the
 // floor height, the walkable rectangle, solid footprints to slide around, and
@@ -39,8 +41,9 @@ export interface Level {
   bounds: { minX: number; maxX: number; minZ: number; maxZ: number };
   colliders: Footprint[];
   spawn: SpawnPoint;
-  // Where the player appears when arriving through the level's door.
-  arrival: SpawnPoint;
+  // Where the player appears when arriving from each neighbouring world: in
+  // front of the door they came through, facing into the room.
+  arrivals: Partial<Record<WorldId, SpawnPoint>>;
 }
 
 export interface SpawnPoint {
@@ -81,8 +84,10 @@ export const ISLAND_LEVEL: Level = {
     { cx: DOOR_X, cz: DOOR_Z, w: 1.9, d: 0.55 },
   ],
   spawn: { x: 0, z: FLOOR_DEPTH / 2 - 5, yaw: 0 },
-  // Just stepped out of the door, facing away from it toward the pool.
-  arrival: { x: DOOR_X, z: DOOR_Z + 3.5, yaw: Math.PI },
+  arrivals: {
+    // Just stepped out of the door, facing away from it toward the pool.
+    cave: { x: DOOR_X, z: DOOR_Z + 3.5, yaw: Math.PI },
+  },
 };
 
 const CHAIR_BLOCK_CX =
@@ -122,9 +127,38 @@ export const CAVE_LEVEL: Level = {
       const extent = size * (Math.abs(Math.cos(yaw)) + Math.abs(Math.sin(yaw)));
       return { cx: x, cz: z, w: extent, d: extent };
     }),
-    // the door itself
+    // the doors
     { cx: CAVE.CAVE_DOOR_X, cz: CAVE.CAVE_DOOR_Z, w: 1.9, d: 0.55 },
+    { cx: CAVE.STAFF_DOOR_X, cz: CAVE.STAFF_DOOR_Z, w: 1.9, d: 0.55 },
   ],
   spawn: { x: 0, z: CAVE.HALF_L - 4, yaw: 0 },
-  arrival: { x: 0, z: CAVE.HALF_L - 4, yaw: 0 },
+  arrivals: {
+    island: { x: 0, z: CAVE.HALF_L - 4, yaw: 0 },
+    // Back out of the staff door, facing the room.
+    stockroom: { x: CAVE.STAFF_DOOR_X, z: CAVE.STAFF_DOOR_Z + 3, yaw: Math.PI - 0.45 },
+  },
+};
+
+export const STOCKROOM_LEVEL: Level = {
+  floorY: 0,
+  bounds: {
+    minX: -STOCK.WALK_HALF_W,
+    maxX: STOCK.WALK_HALF_W,
+    minZ: -STOCK.HALF_L,
+    maxZ: STOCK.HALF_L,
+  },
+  colliders: [
+    ...STOCK.LOTS.map(({ x0, x1, z0, z1 }) => ({
+      cx: (x0 + x1) / 2,
+      cz: (z0 + z1) / 2,
+      w: Math.abs(x1 - x0),
+      d: Math.abs(z1 - z0),
+    })),
+    ...STOCK.PROPS_COLLIDERS,
+    { cx: STOCK.DOOR_X, cz: STOCK.DOOR_Z, w: 1.9, d: 0.55 },
+  ],
+  spawn: { x: 0, z: STOCK.HALF_L - 4, yaw: 0 },
+  arrivals: {
+    cave: { x: 0, z: STOCK.HALF_L - 4, yaw: 0 },
+  },
 };

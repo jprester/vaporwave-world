@@ -48,17 +48,23 @@ let autoStartArmed = false;
 // Web Audio graph, built on the first play (it needs a user gesture):
 //
 //   <audio> → musicGain ─┬─ directGain ─────────────────────────────┬→ master → out
-//                        └─ TV speaker (band-limit, drive) → panner ─┤   (mute)
+//                        ├─ TV speaker (band-limit, drive) → panner ─┤   (mute)
+//                        └─ PA horn (band-limit) ─┬─ paDry ──────────┤
+//                                                 └─ reverb → paWet ─┤
 //   room tone + fluorescent hum ────────────── ambienceGain ─────────┘
 //
 // On the island the music plays straight ("open"). In the cave it comes out of
 // the video wall ("tv"): small, tinny and overdriven, placed in 3D so it gets
 // louder and shifts as you walk and turn, over the empty room's air handling
-// and hum. If Web Audio is unavailable, volume falls back to the elements' own
-// volume and there are no effects.
-export type Acoustics = "open" | "tv";
+// and hum. In the stockroom ("hall") it plays over the warehouse PA: thin
+// horn speakers high up, mostly heard as a long wash of reverb off concrete.
+// If Web Audio is unavailable, volume falls back to the elements' own volume
+// and there are no effects.
+export type Acoustics = "open" | "tv" | "hall";
 const TV_LEVEL = 1.1;
-const AMBIENCE_LEVEL = 1;
+const PA_DRY_LEVEL = 0.35;
+const PA_WET_LEVEL = 1.25;
+const AMBIENCE_LEVEL: Record<Acoustics, number> = { open: 0, tv: 1, hall: 0.8 };
 let acoustics: Acoustics = "open";
 let audioCtx: AudioContext | null = null;
 let graphFailed = false;
@@ -66,6 +72,8 @@ let musicGain: GainNode | null = null;
 let directGain: GainNode | null = null;
 let tvGain: GainNode | null = null;
 let tvPanner: PannerNode | null = null;
+let paDry: GainNode | null = null;
+let paWet: GainNode | null = null;
 let ambienceGain: GainNode | null = null;
 let master: GainNode | null = null;
 
@@ -120,6 +128,37 @@ function buildAmbience(ctx: AudioContext, out: AudioNode) {
   buzz.start();
 }
 
+// A synthetic impulse response for a big, empty concrete hall: a few discrete
+// early reflections, then a dense noise tail that decays over ~4 s and loses
+// its highs as it goes.
+function hallImpulse(ctx: AudioContext) {
+  const seconds = 4.2;
+  const length = Math.floor(ctx.sampleRate * seconds);
+  const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const data = buffer.getChannelData(ch);
+    let lp = 0;
+    for (let i = 0; i < length; i++) {
+      const t = i / length;
+      // One-pole lowpass whose cutoff falls over the tail.
+      const k = 0.85 - 0.75 * t;
+      lp += (Math.random() * 2 - 1 - lp) * k;
+      data[i] = lp * Math.pow(1 - t, 3.2) * 0.6;
+    }
+    // Early reflections off the far walls (slightly different per ear).
+    for (const [ms, gain] of [
+      [23, 0.5],
+      [41, 0.35],
+      [67, 0.3],
+      [96, 0.22],
+    ]) {
+      const at = Math.floor(((ms + ch * 7) / 1000) * ctx.sampleRate);
+      data[at] += gain * (ch ? -1 : 1);
+    }
+  }
+  return buffer;
+}
+
 function ensureGraph() {
   if (audioCtx || graphFailed || audioElements.length === 0) return;
   try {
@@ -152,6 +191,22 @@ function ensureGraph() {
     tvPanner.refDistance = 4;
     tvPanner.rolloffFactor = 0.6;
 
+    // Warehouse PA: horn speakers, all mids, into the hall.
+    const paHigh = ctx.createBiquadFilter();
+    paHigh.type = "highpass";
+    paHigh.frequency.value = 520;
+    const paLow = ctx.createBiquadFilter();
+    paLow.type = "lowpass";
+    paLow.frequency.value = 4200;
+    paLow.Q.value = 2.2;
+    const reverb = ctx.createConvolver();
+    reverb.buffer = hallImpulse(ctx);
+    paDry = ctx.createGain();
+    paWet = ctx.createGain();
+    musicGain.connect(paHigh).connect(paLow);
+    paLow.connect(paDry).connect(master);
+    paLow.connect(reverb).connect(paWet).connect(master);
+
     musicGain.connect(directGain).connect(master);
     musicGain
       .connect(tvHigh)
@@ -179,12 +234,16 @@ function ensureGraph() {
 }
 
 function applyAcoustics(immediate = false) {
-  if (!audioCtx || !directGain || !tvGain || !ambienceGain) return;
+  if (!audioCtx || !directGain || !tvGain || !ambienceGain || !paDry || !paWet)
+    return;
   const tv = acoustics === "tv";
+  const hall = acoustics === "hall";
   const targets: [AudioParam, number][] = [
-    [directGain.gain, tv ? 0 : 1],
+    [directGain.gain, acoustics === "open" ? 1 : 0],
     [tvGain.gain, tv ? TV_LEVEL : 0],
-    [ambienceGain.gain, tv ? AMBIENCE_LEVEL : 0],
+    [paDry.gain, hall ? PA_DRY_LEVEL : 0],
+    [paWet.gain, hall ? PA_WET_LEVEL : 0],
+    [ambienceGain.gain, AMBIENCE_LEVEL[acoustics]],
   ];
   const now = audioCtx.currentTime;
   for (const [param, value] of targets) {

@@ -13,6 +13,11 @@ export const HALF_L = ROOM_LENGTH / 2;
 export const CAVE_DOOR_X = 0;
 export const CAVE_DOOR_Z = HALF_L - 0.35;
 
+// Staff door on the north wall, beside the video wall, facing into the room
+// (+z). It leads backstage to the stockroom.
+export const STAFF_DOOR_X = 6;
+export const STAFF_DOOR_Z = -HALF_L + 0.35;
+
 // Video wall against the north wall.
 export const WALL_COLS = 5;
 export const WALL_ROWS = 3;

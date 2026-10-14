@@ -13,10 +13,10 @@ import {
   WebGLRenderTarget,
 } from "three";
 
-// "Plato TV": the island as a live broadcast on the cave's CRTs. While the
-// cave is (about to be) on screen, a camera on the empty island cuts between
-// a handful of slow shots and renders into a small half-float target at
-// ~15 fps; a canvas overlay adds the channel logo, a LIVE bug, a lower-third
+// "Plato TV": the island as a live broadcast on the cave's CRTs (and the
+// stockroom's desk monitor). While either is (about to be) on screen, a
+// camera on the empty island cuts between a handful of slow shots and renders
+// into a small half-float target at ~15 fps; a canvas overlay adds the channel logo, a LIVE bug, a lower-third
 // caption per shot, a news ticker, and now and then a stand-by card. Every
 // screen samples these two textures. The low resolution and frame rate are
 // part of the look, and keep the island's cost down while it isn't the world
@@ -109,7 +109,8 @@ export interface FeedTextures {
 interface Props {
   enabled: boolean;
   island: RefObject<Group | null>;
-  cave: RefObject<Group | null>;
+  // The other worlds' groups, hidden while the island is filmed.
+  others: RefObject<Group | null>[];
   islandFog: Fog;
   onTextures: (textures: FeedTextures) => void;
 }
@@ -127,7 +128,7 @@ function segmentAt(t: number) {
 export default function IslandFeed({
   enabled,
   island,
-  cave,
+  others,
   islandFog,
   onTextures,
 }: Props) {
@@ -195,7 +196,7 @@ export default function IslandFeed({
   // Default priority (0) runs before the EffectComposer's frame (priority 1),
   // so the feed is ready before the cave is drawn.
   useFrame((state, delta) => {
-    if (!enabled || !island.current || !cave.current) return;
+    if (!enabled || !island.current) return;
     showTime.current += delta;
     since.current += delta;
     if (since.current < FEED_INTERVAL) return;
@@ -221,10 +222,10 @@ export default function IslandFeed({
     camera.lookAt(lookTarget);
 
     const islandVisible = island.current.visible;
-    const caveVisible = cave.current.visible;
+    const othersVisible = others.map((g) => g.current?.visible ?? false);
     const fog = scene.fog;
     island.current.visible = true;
-    cave.current.visible = false;
+    for (const g of others) if (g.current) g.current.visible = false;
     scene.fog = islandFog;
 
     const previous = gl.getRenderTarget();
@@ -236,7 +237,9 @@ export default function IslandFeed({
     gl.setRenderTarget(previous);
 
     island.current.visible = islandVisible;
-    cave.current.visible = caveVisible;
+    others.forEach((g, i) => {
+      if (g.current) g.current.visible = othersVisible[i];
+    });
     scene.fog = fog;
   });
 

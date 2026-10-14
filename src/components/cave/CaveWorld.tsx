@@ -37,6 +37,8 @@ import {
   CRT_W,
   HALF_L,
   HALF_W,
+  STAFF_DOOR_X,
+  STAFF_DOOR_Z,
   ROOM_HEIGHT,
   ROOM_LENGTH,
   ROOM_WIDTH,
@@ -91,8 +93,17 @@ export default function CaveWorld({ active, feed }: Props) {
       <Chairs />
       <CaveDoor />
       <ExitSign />
+      <StaffDoor />
       <TvSpeaker active={active} />
       <DoorTrigger
+        to="stockroom"
+        x={STAFF_DOOR_X}
+        z={STAFF_DOOR_Z}
+        normal={[0, 1]}
+        active={active}
+      />
+      <DoorTrigger
+        to="island"
         x={CAVE_DOOR_X}
         z={CAVE_DOOR_Z}
         normal={[0, -1]}
@@ -295,7 +306,7 @@ const CHARCOAL = "#2c2a31";
 const SMOKE = "#6b6570";
 
 // One CRT television. The screen faces +z in local space.
-function Crt({
+export function Crt({
   shared,
   seed,
   mode,
@@ -572,6 +583,102 @@ function ExitSign() {
         color="#ff3a2a"
         intensity={1.5}
         distance={4}
+        decay={2}
+      />
+    </group>
+  );
+}
+
+// The staff door in the north wall, beside the screens. Cold light leaks out
+// from under it onto the carpet: there's something lit behind it.
+function StaffDoor() {
+  const { scene } = useGLTF("/models/door/door.glb");
+  const door = useMemo(() => scene.clone(true), [scene]);
+  const { plaque, spill, gap } = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 96;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#2a2a30";
+    ctx.fillRect(0, 0, 256, 96);
+    ctx.strokeStyle = "#8d8a86";
+    ctx.lineWidth = 4;
+    ctx.strokeRect(6, 6, 244, 84);
+    ctx.fillStyle = "#e9e4da";
+    ctx.font = "bold 40px Arial, Helvetica, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("STAFF ONLY", 128, 50);
+    const map = new CanvasTexture(canvas);
+    map.colorSpace = SRGBColorSpace;
+    const plaque = new MeshStandardMaterial({ map, roughness: 0.4 });
+
+    // A soft fan of light on the floor, brightest at the door's bottom edge.
+    const g = document.createElement("canvas");
+    g.width = 128;
+    g.height = 64;
+    const gctx = g.getContext("2d")!;
+    const grad = gctx.createLinearGradient(0, 0, 0, 64);
+    grad.addColorStop(0, "rgba(255,255,255,1)");
+    grad.addColorStop(0.25, "rgba(255,255,255,0.35)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    gctx.fillStyle = grad;
+    gctx.fillRect(0, 0, 128, 64);
+    // Fade the sides.
+    gctx.globalCompositeOperation = "destination-in";
+    const side = gctx.createLinearGradient(0, 0, 128, 0);
+    side.addColorStop(0, "rgba(0,0,0,0)");
+    side.addColorStop(0.2, "rgba(0,0,0,1)");
+    side.addColorStop(0.8, "rgba(0,0,0,1)");
+    side.addColorStop(1, "rgba(0,0,0,0)");
+    gctx.fillStyle = side;
+    gctx.fillRect(0, 0, 128, 64);
+    const spillMap = new CanvasTexture(g);
+    const spill = new MeshBasicMaterial({
+      map: spillMap,
+      color: new Color(1.8, 2.0, 2.2),
+      transparent: true,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const gap = new MeshBasicMaterial({
+      color: new Color(2.6, 2.8, 3.0),
+      toneMapped: false,
+    });
+    return { plaque, spill, gap };
+  }, []);
+  useEffect(
+    () => () => {
+      plaque.map?.dispose();
+      plaque.dispose();
+      spill.map?.dispose();
+      spill.dispose();
+      gap.dispose();
+    },
+    [plaque, spill, gap],
+  );
+
+  return (
+    <group position={[STAFF_DOOR_X, 0, STAFF_DOOR_Z]}>
+      <primitive name="staff-door" object={door} />
+      <mesh position={[0.05, 1.75, 0.2]} material={plaque}>
+        <planeGeometry args={[0.6, 0.225]} />
+      </mesh>
+      {/* The bright gap under the door, and its fan of light. */}
+      <mesh position={[0.05, 0.012, 0.31]} material={gap}>
+        <planeGeometry args={[1.6, 0.024]} />
+      </mesh>
+      <mesh
+        position={[0.05, 0.004, 0.95]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        material={spill}>
+        <planeGeometry args={[2.2, 1.3]} />
+      </mesh>
+      <pointLight
+        position={[0.05, 0.15, 0.7]}
+        color="#cfe2ff"
+        intensity={2.4}
+        distance={3.5}
         decay={2}
       />
     </group>
