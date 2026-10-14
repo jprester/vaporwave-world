@@ -13,7 +13,7 @@ A first-person **vaporwave 3D experience** — a liminal poolroom platform drift
 - **Diegetic music** — a boombox plays vaporwave/lo-fi tracks; volume fades with your distance to it, and controls appear when you walk close
 - **The door** — the freestanding door opens onto the cave: a closed-down hotel conference room where rows of empty chairs face a wall of CRTs tuned to *Plato TV*, a live broadcast of the island that cuts between shots of the sun, the statues, the pool and the door you came through, with captions, a ticker and the occasional stand-by card. The music follows you in, playing tinny out of the TVs over the room's hum and air handling
 - **Further back** — the cave has more than one door. What's behind the second one is best found in person; the music follows you there too, in a room of its own. (Spoilers, and notes for contributors, are in [docs/WORLD.md](docs/WORLD.md).)
-- **One door that doesn't match** — every world now has a door that looks unfinished. They all lead to the same place, and from there you can get anywhere. It looks like nothing else in the game, and it loads only when you first need it
+- **A door that doesn't belong** — every world also has a glass door that looks like it came from somewhere else entirely. They all lead to the same place, and from there you can get anywhere, upstairs included. It loads only when you first need it
 - **First-person walk camera** — custom kinematic controller with acceleration, gravity, and jumping
 - **Vaporwave grade** — bloom, chromatic aberration, film noise, and vignette, per world (not every world gets it)
 
@@ -76,8 +76,8 @@ src/
     │                     #   fog, camera near plane and acoustics
     ├── worldStore.ts     # Current world, which door leads where, and the
     │                     #   transition between worlds (outside Canvas)
-    ├── levels.ts         # Floor height, bounds, colliders, spawn and
-    │                     #   per-door arrival points for each world
+    ├── levels.ts         # Floors (and upper floors), bounds, colliders, spawn
+    │                     #   and per-door arrival points for each world
     ├── DoorTrigger.tsx   # "At this door and looking at it" detection
     ├── IslandFeed.tsx    # "Plato TV": island shots + broadcast graphics for the CRTs
     ├── Effects.tsx       # Per-world post: bloom, chromatic aberration, vignette, noise
@@ -87,11 +87,12 @@ src/
     │                     #   CRT video wall, chairs, EXIT sign, staff door
     ├── stockroom/        # The world behind the staff door: room shell,
     │                     #   stock, procedural textures, fitted model clones
-    ├── forms/            # The grey doors and the world behind them (lazy-loaded;
+    ├── mall/             # The glass doors and the world behind them (lazy-loaded;
     │                     #   spoilers in docs/WORLD.md)
     ├── MusicPlayer.tsx   # Boombox: distance-based volume, proximity detection
     ├── musicStore.ts     # Tracks, play/pause/mute, Web Audio acoustics per world
-    │                     #   (open air, TV speaker, PA + hall reverb) + ambience
+    │                     #   (open air, TV speaker, PA + hall reverb, ceiling
+    │                     #   speakers + atrium reverb) + ambience
     └── UI.tsx            # HUD, music controls, door prompt, fade overlay
 
 docs/
@@ -113,7 +114,7 @@ npm run dev                                            # serves :3000
 npm run shot -- --out screenshots/sun.png --pitch 0.05 # capture a frame
 ```
 
-Appending `?qa=1` to the URL hides the Leva panel and HUD for clean captures, and `?world=cave`, `?world=stockroom` or `?world=forms` starts in that world. In QA mode, `window.travel("cave")` (and so on) goes through a door from the console. See `scripts/shot.mjs` for all flags (`--yaw`, `--pitch`, `--x`/`--z`, `--frames`, etc.). If Playwright's bundled browser isn't installed, point `CHROMIUM_PATH` at a Chromium binary.
+Appending `?qa=1` to the URL hides the Leva panel and HUD for clean captures, and `?world=cave`, `?world=stockroom` or `?world=mall` starts in that world. In QA mode, `window.travel("cave")` (and so on) goes through a door from the console. See `scripts/shot.mjs` for all flags (`--yaw`, `--pitch`, `--x`/`--z`, `--frames`, etc.). If Playwright's bundled browser isn't installed, point `CHROMIUM_PATH` at a Chromium binary.
 
 To check that every door works the way a player uses it (stand at it, look at it, open it, arrive in front of the right door on the other side), run the door test against the dev server:
 
@@ -134,7 +135,7 @@ all tracks generated with [Suno](https://suno.com/).
 - Helios Vaporwave Bust: [Helios Vaporwave Bust](https://sketchfab.com/3d-models/helios-vaporwave-bust-f7a0fdfc6bef44b497e33257658764c8) by [fil0s0v](https://sketchfab.com/fil0s0v) (CC Attribution)
 - **Textures** — tile, water-normal, and surface maps. _TODO: confirm sources/licenses._
 - **Font** — [Italianno](https://fonts.google.com/specimen/Italianno) (Google Fonts, SIL Open Font License).
-- **Poly Haven assets** — a scanned model and an HDRI from [Poly Haven](https://polyhaven.com) (CC0). Each file, its source, author and license is listed in [ASSETS.md](ASSETS.md).
+- **Downloaded assets** — files from asset libraries such as [Poly Haven](https://polyhaven.com) (CC0) are listed, with source, author and license, in [ASSETS.md](ASSETS.md). There are none at the moment.
 
 ## License
 
