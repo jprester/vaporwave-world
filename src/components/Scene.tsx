@@ -23,10 +23,10 @@ import { getSnapshot, subscribe, travel, type WorldId } from "./worldStore";
 
 // Fog color chosen so that, once mixed in the Water/sky shaders' display
 // space (the renderer passes the linear value), fully-fogged pixels render
-// as the sky shader's horizon color (#EBADC2). This makes the distant
+// as the sky shader's pink horizon band. This makes the distant
 // ocean melt into the horizon instead of ending in a hard teal edge.
 const FOG: Record<WorldId, Fog> = {
-  island: new Fog(0xf6d7e2, 60, 700),
+  island: new Fog(0xefb9d4, 80, 900),
   cave: new Fog(0x160e1c, 9, 46),
 };
 const CAMERA_NEAR: Record<WorldId, number> = { island: 1, cave: 0.05 };

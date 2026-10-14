@@ -40,12 +40,12 @@ export default function IslandWorld({ active }: { active: boolean }) {
 
   const lights = useControls("Lights", {
     ambientColor: "#e8cad8",
-    ambientIntensity: { value: 1.2, min: 0, max: 5, step: 0.1 },
+    ambientIntensity: { value: 1.15, min: 0, max: 5, step: 0.1 },
     hemiSkyColor: "#b7b6d6",
     hemiGroundColor: "#e8bccf",
-    hemiIntensity: { value: 1.8, min: 0, max: 5, step: 0.1 },
-    dirColor: "#ff6ea5",
-    dirIntensity: { value: 7.2, min: 0, max: 10, step: 0.1 },
+    hemiIntensity: { value: 1.4, min: 0, max: 5, step: 0.1 },
+    dirColor: "#ff87b3",
+    dirIntensity: { value: 6.2, min: 0, max: 10, step: 0.1 },
   });
 
   const sunDirection = useMemo(() => {
@@ -85,7 +85,7 @@ export default function IslandWorld({ active }: { active: boolean }) {
       waterNormals,
       sunDirection: new Vector3(),
       sunColor: 0xff33aa,
-      waterColor: 0x4fb8c4,
+      waterColor: 0x35c3cf,
       distortionScale: 2.0,
       fog: true,
     });
