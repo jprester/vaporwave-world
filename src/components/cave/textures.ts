@@ -4,7 +4,7 @@ import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from "three";
 // cave needs no extra image assets. All are tileable.
 
 // Deterministic PRNG so the pattern is identical on every load.
-function mulberry32(seed: number) {
+export function mulberry32(seed: number) {
   return () => {
     seed |= 0;
     seed = (seed + 0x6d2b79f5) | 0;
@@ -14,7 +14,7 @@ function mulberry32(seed: number) {
   };
 }
 
-function toTexture(canvas: HTMLCanvasElement, repeatX = 1, repeatY = 1) {
+export function toTexture(canvas: HTMLCanvasElement, repeatX = 1, repeatY = 1) {
   const tex = new CanvasTexture(canvas);
   tex.wrapS = RepeatWrapping;
   tex.wrapT = RepeatWrapping;
@@ -24,7 +24,7 @@ function toTexture(canvas: HTMLCanvasElement, repeatX = 1, repeatY = 1) {
   return tex;
 }
 
-function speckle(
+export function speckle(
   ctx: CanvasRenderingContext2D,
   size: number,
   rand: () => number,

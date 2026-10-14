@@ -14,6 +14,7 @@ import {
   getSnapshot as getWorldSnapshot,
   subscribe as subscribeWorld,
   travel,
+  type WorldId,
 } from "./worldStore";
 
 // Fullscreen helpers. Toggling fullscreen makes the experience more immersive
@@ -78,14 +79,15 @@ export default function UI() {
         toggleFullscreen();
       } else if (e.code === "Enter" && getWorldSnapshot().nearDoor) {
         e.preventDefault();
-        travel();
+        travel(getWorldSnapshot().nearDoor ?? undefined);
       }
     };
     // While the mouse is captured, a click at the door opens it. (The click
     // that first captures the mouse is left alone.)
     const onPointerDown = () => {
-      if (document.pointerLockElement && getWorldSnapshot().nearDoor) {
-        travel();
+      const door = getWorldSnapshot().nearDoor;
+      if (document.pointerLockElement && door) {
+        travel(door);
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -110,10 +112,7 @@ export default function UI() {
   }, [isQaMode]);
 
   const transition = (
-    <TransitionOverlay
-      phase={world.phase}
-      towardLight={world.destination === "island"}
-    />
+    <TransitionOverlay phase={world.phase} destination={world.destination} />
   );
 
   if (isQaMode) {
@@ -220,7 +219,7 @@ export default function UI() {
         trackLabel={music.trackLabel}
         visible={music.nearBoombox}
       />
-      <DoorPrompt visible={world.nearDoor && world.phase === "idle"} />
+      <DoorPrompt visible={world.nearDoor !== null && world.phase === "idle"} />
       {transition}
     </>
   );
@@ -251,15 +250,23 @@ function DoorPrompt({ visible }: { visible: boolean }) {
   );
 }
 
-// Full-screen fade between worlds. Walking into the cave fades to darkness;
-// walking back out fades through a blinding pink-white, like stepping into
-// sunlight.
+// Full-screen fade between worlds, in the color of where you're going.
+// Walking into the cave fades to darkness; walking back out fades through a
+// blinding pink-white, like stepping into sunlight; going backstage fades
+// through the cold grey-blue of a dark warehouse.
+const FADE_BACKGROUND: Record<WorldId, string> = {
+  island:
+    "radial-gradient(circle at 50% 45%, #ffffff 0%, #ffe6f2 45%, #ffc2de 100%)",
+  cave: "#07040a",
+  stockroom: "#090b10",
+};
+
 function TransitionOverlay({
   phase,
-  towardLight,
+  destination,
 }: {
   phase: "idle" | "out" | "in";
-  towardLight: boolean;
+  destination: WorldId;
 }) {
   const covering = phase === "out";
   return (
@@ -270,9 +277,7 @@ function TransitionOverlay({
         inset: 0,
         zIndex: 800,
         pointerEvents: "none",
-        background: towardLight
-          ? "radial-gradient(circle at 50% 45%, #ffffff 0%, #ffe6f2 45%, #ffc2de 100%)"
-          : "#07040a",
+        background: FADE_BACKGROUND[destination],
         opacity: covering ? 1 : 0,
         transition: `opacity ${covering ? FADE_OUT_MS : FADE_IN_MS}ms ease-in-out`,
       }}

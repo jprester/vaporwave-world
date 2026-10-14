@@ -11,15 +11,16 @@ import Effects from "./Effects";
 import CaveWorld from "./cave/CaveWorld";
 import IslandFeed, { type FeedTextures } from "./IslandFeed";
 import IslandWorld from "./island/IslandWorld";
-import { CAVE_LEVEL, ISLAND_LEVEL } from "./levels";
-import { setAcoustics, setDistanceVolume } from "./musicStore";
+import { CAVE_LEVEL, ISLAND_LEVEL, STOCKROOM_LEVEL, type Level } from "./levels";
+import { setAcoustics, setDistanceVolume, type Acoustics } from "./musicStore";
+import StockroomWorld from "./stockroom/StockroomWorld";
 import { usePlayerController } from "./player/usePlayerController";
 import { getSnapshot, subscribe, travel, type WorldId } from "./worldStore";
 
-// Both worlds stay mounted; only the current one is visible (and so drawn and
-// lit). Fog and the camera's near plane are per world: the island needs a far
-// horizon haze, the cave a close, dim one and a near plane that doesn't clip
-// the chairs.
+// All worlds stay mounted; only the current one is visible (and so drawn and
+// lit). Fog, the camera's near plane and the acoustics are per world: the
+// island needs a far horizon haze, the indoor worlds a close, dim one and a
+// near plane that doesn't clip the furniture.
 
 // Fog color chosen so that, once mixed in the Water/sky shaders' display
 // space (the renderer passes the linear value), fully-fogged pixels render
@@ -28,26 +29,46 @@ import { getSnapshot, subscribe, travel, type WorldId } from "./worldStore";
 const FOG: Record<WorldId, Fog> = {
   island: new Fog(0xf6d7e2, 60, 700),
   cave: new Fog(0x160e1c, 9, 46),
+  stockroom: new Fog(0x0d0c14, 18, 66),
 };
-const CAMERA_NEAR: Record<WorldId, number> = { island: 1, cave: 0.05 };
-// In the cave the music comes from the video wall and its falloff is handled
-// by the 3D panner (see musicStore), so the base level is simply full.
-// (On the island, MusicPlayer sets the level from distance every frame.)
-const CAVE_MUSIC_LEVEL = 1;
+const CAMERA_NEAR: Record<WorldId, number> = {
+  island: 1,
+  cave: 0.05,
+  stockroom: 0.05,
+};
+const LEVELS: Record<WorldId, Level> = {
+  island: ISLAND_LEVEL,
+  cave: CAVE_LEVEL,
+  stockroom: STOCKROOM_LEVEL,
+};
+// Island: straight from the boombox. Cave: out of the TVs. Stockroom: over
+// the warehouse PA, into a big reverberant hall.
+const ACOUSTICS: Record<WorldId, Acoustics> = {
+  island: "open",
+  cave: "tv",
+  stockroom: "hall",
+};
+// Indoors the music's placement and falloff are handled by the Web Audio
+// graph (see musicStore), so the base level is simply full. (On the island,
+// MusicPlayer sets the level from distance every frame.)
+const INDOOR_MUSIC_LEVEL = 1;
+// Worlds that show Plato TV somewhere, so the island feed must be rendering.
+const WATCHES_TV = new Set<WorldId>(["cave", "stockroom"]);
 
 export default function Scene() {
   const { camera, gl, scene } = useThree();
-  const { world, destination, phase, arrivedByDoor } = useSyncExternalStore(
+  const { world, destination, phase, cameFrom } = useSyncExternalStore(
     subscribe,
     getSnapshot,
     getSnapshot,
   );
-  const level = world === "island" ? ISLAND_LEVEL : CAVE_LEVEL;
-  const spawn = arrivedByDoor ? level.arrival : level.spawn;
+  const level = LEVELS[world];
+  const spawn = (cameFrom && level.arrivals[cameFrom]) || level.spawn;
   const playerSnapshot = usePlayerController(level, spawn, phase === "out");
 
   const islandGroup = useRef<Group>(null);
   const caveGroup = useRef<Group>(null);
+  const stockroomGroup = useRef<Group>(null);
   const [feed, setFeed] = useState<FeedTextures | null>(null);
   const onFeedTextures = useCallback((t: FeedTextures) => setFeed(t), []);
 
@@ -56,8 +77,8 @@ export default function Scene() {
     const cam = camera as PerspectiveCamera;
     cam.near = CAMERA_NEAR[world];
     cam.updateProjectionMatrix();
-    setAcoustics(world === "cave" ? "tv" : "open");
-    if (world === "cave") setDistanceVolume(CAVE_MUSIC_LEVEL);
+    setAcoustics(ACOUSTICS[world]);
+    if (world !== "island") setDistanceVolume(INDOOR_MUSIC_LEVEL);
     return () => {
       scene.fog = null;
     };
@@ -92,10 +113,16 @@ export default function Scene() {
       <group ref={caveGroup} visible={world === "cave"}>
         <CaveWorld active={world === "cave" && phase !== "out"} feed={feed} />
       </group>
+      <group ref={stockroomGroup} visible={world === "stockroom"}>
+        <StockroomWorld
+          active={world === "stockroom" && phase !== "out"}
+          feed={feed}
+        />
+      </group>
       <IslandFeed
-        enabled={world === "cave" || destination === "cave"}
+        enabled={WATCHES_TV.has(world) || WATCHES_TV.has(destination)}
         island={islandGroup}
-        cave={caveGroup}
+        others={[caveGroup, stockroomGroup]}
         islandFog={FOG.island}
         onTextures={onFeedTextures}
       />

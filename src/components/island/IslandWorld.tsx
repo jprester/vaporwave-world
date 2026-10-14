@@ -149,7 +149,7 @@ export default function IslandWorld({ active }: { active: boolean }) {
       <VaporwaveBust />
       <WomanStatue />
       <FloorDoor />
-      <DoorTrigger x={DOOR_X} z={DOOR_Z} normal={[0, 1]} active={active} />
+      <DoorTrigger to="cave" x={DOOR_X} z={DOOR_Z} normal={[0, 1]} active={active} />
       <MusicPlayer active={active} />
     </group>
   );
