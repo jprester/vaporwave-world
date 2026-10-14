@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import {
   Bloom,
   ChromaticAberration,
@@ -9,10 +9,19 @@ import {
 import { BlendFunction } from "postprocessing";
 import { Vector2 } from "three";
 import { useControls } from "leva";
+import type { WorldId } from "./worldStore";
 
-// The vaporwave grade shared by every world: bloom, chromatic aberration,
-// vignette and film noise. Tweakable from the Leva panel in dev.
-export default function Effects() {
+// The forms' own composer lives in their lazily loaded chunk (with the
+// ambient occlusion library), so the first load doesn't carry it.
+const FormsEffects = lazy(() =>
+  import("./forms/FormsWorld").then((m) => ({ default: m.FormsEffects })),
+);
+
+// Post-processing per world. The island, the cave and the stockroom share
+// the vaporwave grade: bloom, chromatic aberration, vignette and film noise,
+// tweakable from the Leva panel in dev. The forms get none of it (see
+// FormsEffects).
+export default function Effects({ world }: { world: WorldId }) {
   const effects = useControls("Effects", {
     bloomIntensity: { value: 0.5, min: 0, max: 5, step: 0.01 },
     bloomThreshold: { value: 1.2, min: 0, max: 3, step: 0.01 },
@@ -29,6 +38,14 @@ export default function Effects() {
     () => new Vector2(effects.chromaticOffset, effects.chromaticOffset),
     [effects.chromaticOffset],
   );
+
+  if (world === "forms") {
+    return (
+      <Suspense fallback={null}>
+        <FormsEffects />
+      </Suspense>
+    );
+  }
 
   return (
     <EffectComposer enableNormalPass={false} multisampling={4}>

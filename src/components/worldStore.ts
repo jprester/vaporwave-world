@@ -6,7 +6,7 @@
 // destination places the player by the door they came through (see the
 // per-origin arrivals in levels.ts).
 
-export const WORLD_IDS = ["island", "cave", "stockroom"] as const;
+export const WORLD_IDS = ["island", "cave", "stockroom", "forms"] as const;
 export type WorldId = (typeof WORLD_IDS)[number];
 
 // idle → out (screen fades to the destination's color) → world swaps →
@@ -18,10 +18,13 @@ export const FADE_IN_MS = 1400;
 
 // Where a world's doors lead, in the order the debug hook falls back to when
 // travel() is called away from any door.
+// The forms are the junction: every other world has a grey door into them,
+// and they have a door out to each.
 const DOORS: Record<WorldId, WorldId[]> = {
-  island: ["cave"],
-  cave: ["island", "stockroom"],
-  stockroom: ["cave"],
+  island: ["cave", "forms"],
+  cave: ["island", "stockroom", "forms"],
+  stockroom: ["cave", "forms"],
+  forms: ["island", "cave", "stockroom"],
 };
 
 // The world you'd have come from when starting somewhere via ?world=.
@@ -29,7 +32,21 @@ const DEFAULT_ORIGIN: Record<WorldId, WorldId | null> = {
   island: null,
   cave: "island",
   stockroom: "cave",
+  forms: "island",
 };
+
+// Worlds whose assets load lazily, the first time they're needed. The fade
+// holds on its color until the destination reports it's ready.
+const notReady = new Set<WorldId>(["forms"]);
+const READY_POLL_MS = 100;
+
+export function markWorldReady(world: WorldId) {
+  notReady.delete(world);
+}
+
+export function isWorldReady(world: WorldId) {
+  return !notReady.has(world);
+}
 
 interface Snapshot {
   world: WorldId;
@@ -65,7 +82,7 @@ function update(patch: Partial<Snapshot>) {
   listeners.forEach((l) => l());
 }
 
-// ?world=cave or ?world=stockroom starts there (screenshots and debugging).
+// ?world=cave, ?world=stockroom or ?world=forms starts there (screenshots and debugging).
 function initialWorld(): WorldId {
   if (typeof window === "undefined") return "island";
   const w = new URLSearchParams(window.location.search).get("world");
@@ -82,10 +99,15 @@ export function travel(to?: WorldId) {
   const destination = to ?? snapshot.nearDoor ?? DOORS[from][0];
   if (destination === from || !DOORS[from].includes(destination)) return;
   update({ phase: "out", destination, nearDoor: null, nearDoorOwner: null });
-  window.setTimeout(() => {
+  const arrive = () => {
+    if (!isWorldReady(destination)) {
+      window.setTimeout(arrive, READY_POLL_MS);
+      return;
+    }
     update({ world: destination, phase: "in", cameFrom: from });
     window.setTimeout(() => update({ phase: "idle" }), FADE_IN_MS);
-  }, FADE_OUT_MS);
+  };
+  window.setTimeout(arrive, FADE_OUT_MS);
 }
 
 // Each DoorTrigger reports for its own door (identified by `owner`), so doors

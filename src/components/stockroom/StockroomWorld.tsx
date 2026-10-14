@@ -10,6 +10,7 @@ import {
   SRGBColorSpace,
 } from "three";
 import DoorTrigger from "../DoorTrigger";
+import GreyDoor from "../forms/GreyDoor";
 import type { FeedTextures } from "../IslandFeed";
 import { Crt } from "../cave/CaveWorld";
 import {
@@ -21,6 +22,8 @@ import {
   DESK_Z,
   DOOR_X,
   DOOR_Z,
+  GREY_DOOR_X,
+  GREY_DOOR_Z,
   HALF_L,
   HALF_W,
   LOTS,
@@ -88,6 +91,14 @@ export default function StockroomWorld({ active, feed }: Props) {
       <LoadingShutter />
       <Receiving />
       <PaHorns />
+      <GreyDoor x={GREY_DOOR_X} z={GREY_DOOR_Z} normal={[0, 1]} />
+      <DoorTrigger
+        to="forms"
+        x={GREY_DOOR_X}
+        z={GREY_DOOR_Z}
+        normal={[0, 1]}
+        active={active}
+      />
       <DoorTrigger
         to="cave"
         x={DOOR_X}

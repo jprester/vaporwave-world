@@ -48,7 +48,8 @@ let autoStartArmed = false;
 // Web Audio graph, built on the first play (it needs a user gesture):
 //
 //   <audio> → musicGain ─┬─ directGain ─────────────────────────────┬→ master → out
-//                        ├─ TV speaker (band-limit, drive) → panner ─┤   (mute)
+//                        ├─ monoGain (summed to one channel) ────────┤   (mute)
+//                        ├─ TV speaker (band-limit, drive) → panner ─┤
 //                        └─ PA horn (band-limit) ─┬─ paDry ──────────┤
 //                                                 └─ reverb → paWet ─┤
 //   room tone + fluorescent hum ────────────── ambienceGain ─────────┘
@@ -58,18 +59,26 @@ let autoStartArmed = false;
 // louder and shifts as you walk and turn, over the empty room's air handling
 // and hum. In the stockroom ("hall") it plays over the warehouse PA: thin
 // horn speakers high up, mostly heard as a long wash of reverb off concrete.
+// In the forms ("dry") it plays from the clay boombox summed to mono, with no
+// room at all and no ambience: a silent, anechoic white.
 // If Web Audio is unavailable, volume falls back to the elements' own volume
 // and there are no effects.
-export type Acoustics = "open" | "tv" | "hall";
+export type Acoustics = "open" | "tv" | "hall" | "dry";
 const TV_LEVEL = 1.1;
 const PA_DRY_LEVEL = 0.35;
 const PA_WET_LEVEL = 1.25;
-const AMBIENCE_LEVEL: Record<Acoustics, number> = { open: 0, tv: 1, hall: 0.8 };
+const AMBIENCE_LEVEL: Record<Acoustics, number> = {
+  open: 0,
+  tv: 1,
+  hall: 0.8,
+  dry: 0,
+};
 let acoustics: Acoustics = "open";
 let audioCtx: AudioContext | null = null;
 let graphFailed = false;
 let musicGain: GainNode | null = null;
 let directGain: GainNode | null = null;
+let monoGain: GainNode | null = null;
 let tvGain: GainNode | null = null;
 let tvPanner: PannerNode | null = null;
 let paDry: GainNode | null = null;
@@ -171,6 +180,12 @@ function ensureGraph() {
     musicGain = ctx.createGain();
     musicGain.gain.value = 0;
     directGain = ctx.createGain();
+    // A one-channel node with an explicit channel count downmixes the stereo
+    // track to mono.
+    monoGain = ctx.createGain();
+    monoGain.channelCount = 1;
+    monoGain.channelCountMode = "explicit";
+    monoGain.channelInterpretation = "speakers";
     tvGain = ctx.createGain();
     ambienceGain = ctx.createGain();
     master = ctx.createGain();
@@ -208,6 +223,7 @@ function ensureGraph() {
     paLow.connect(reverb).connect(paWet).connect(master);
 
     musicGain.connect(directGain).connect(master);
+    musicGain.connect(monoGain).connect(master);
     musicGain
       .connect(tvHigh)
       .connect(tvLow)
@@ -234,12 +250,21 @@ function ensureGraph() {
 }
 
 function applyAcoustics(immediate = false) {
-  if (!audioCtx || !directGain || !tvGain || !ambienceGain || !paDry || !paWet)
+  if (
+    !audioCtx ||
+    !directGain ||
+    !monoGain ||
+    !tvGain ||
+    !ambienceGain ||
+    !paDry ||
+    !paWet
+  )
     return;
   const tv = acoustics === "tv";
   const hall = acoustics === "hall";
   const targets: [AudioParam, number][] = [
     [directGain.gain, acoustics === "open" ? 1 : 0],
+    [monoGain.gain, acoustics === "dry" ? 1 : 0],
     [tvGain.gain, tv ? TV_LEVEL : 0],
     [paDry.gain, hall ? PA_DRY_LEVEL : 0],
     [paWet.gain, hall ? PA_WET_LEVEL : 0],

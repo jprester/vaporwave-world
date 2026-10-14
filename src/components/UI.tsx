@@ -253,12 +253,14 @@ function DoorPrompt({ visible }: { visible: boolean }) {
 // Full-screen fade between worlds, in the color of where you're going.
 // Walking into the cave fades to darkness; walking back out fades through a
 // blinding pink-white, like stepping into sunlight; going backstage fades
-// through the cold grey-blue of a dark warehouse.
+// through the cold grey-blue of a dark warehouse; the grey doors fade to a
+// flat, even white.
 const FADE_BACKGROUND: Record<WorldId, string> = {
   island:
     "radial-gradient(circle at 50% 45%, #ffffff 0%, #ffe6f2 45%, #ffc2de 100%)",
   cave: "#07040a",
   stockroom: "#090b10",
+  forms: "#efefec",
 };
 
 function TransitionOverlay({
