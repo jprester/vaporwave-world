@@ -11,12 +11,14 @@
 //
 // The doors come from the level data (window.qa_doors, see Level.doors in
 // src/components/levels.ts); the check is that the scene's real triggers
-// answer where the level says the doors are.
+// answer where the level says the doors are. A door with a floor height
+// (the mall's upstairs door) is approached on that floor, and an arrival in
+// front of one must be standing on it.
 //
 // Usage:
 //   npm run dev
 //   CHROMIUM_PATH=/opt/pw-browsers/chromium-*/chrome-linux/chrome \
-//     node scripts/door-test.mjs [--url http://localhost:3000] [--only forms]
+//     node scripts/door-test.mjs [--url http://localhost:3000] [--only mall]
 //
 // Exits non-zero if any check fails.
 
@@ -31,6 +33,7 @@ const base = arg("url", "http://localhost:3000");
 const only = arg("only", null);
 const STAND_OUT = 2.6; // metres in front of the door face
 const FRAMES = 6; // frames to watch nearDoor for
+const EYE_HEIGHT = 1.7;
 
 const browser = await chromium.launch({
   headless: true,
@@ -71,8 +74,8 @@ async function frames(page, n) {
 async function approach(page, door, label) {
   const [nx, nz] = door.normal;
   await page.evaluate(
-    ([x, z]) => window.setPlayerPosition(x, z),
-    [door.x + nx * STAND_OUT, door.z + nz * STAND_OUT],
+    ([x, z, y]) => window.setPlayerPosition(x, z, y ?? undefined),
+    [door.x + nx * STAND_OUT, door.z + nz * STAND_OUT, door.y ?? null],
   );
   // Facing the door is looking along -normal: yaw = atan2(nx, nz).
   await page.evaluate(([y]) => window.setCameraOrientation(y, 0.05), [
@@ -123,6 +126,13 @@ async function checkArrival(page, from, to, label) {
     out > 1.5 && out < 4.3 && side < 1.8,
     `${label}: standing in front of the door back to ${from} (out ${out.toFixed(2)} m, side ${side.toFixed(2)} m)`,
   );
+  if (back.y !== undefined) {
+    const feet = s.player.y - EYE_HEIGHT;
+    check(
+      Math.abs(feet - back.y) < 0.3,
+      `${label}: on that door's floor (feet at ${feet.toFixed(2)} m, door at ${back.y} m)`,
+    );
+  }
   // Facing direction for a yaw: (-sin yaw, -cos yaw).
   const fx = -Math.sin(s.player.yaw);
   const fz = -Math.cos(s.player.yaw);
@@ -138,12 +148,15 @@ page.on("pageerror", (e) => problems.push(e.message ?? String(e)));
 
 async function load(world) {
   await page.goto(`${base}/?qa=1&world=${world}`, { waitUntil: "load" });
+  // Wait for the world itself, not just the scene: a lazily loaded world
+  // (the mall) mounts its doors a moment later.
   await page.waitForFunction(
     () =>
       typeof window.qa_doors === "function" &&
-      typeof window.setPlayerPosition === "function",
+      typeof window.setPlayerPosition === "function" &&
+      JSON.parse(window.render_game_to_text()).ready,
     null,
-    { timeout: 60000 },
+    { timeout: 60000, polling: 200 },
   );
   await frames(page, 3);
 }

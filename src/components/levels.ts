@@ -12,8 +12,8 @@ import {
   FLOOR_DEPTH,
   FLOOR_HEIGHT,
   FLOOR_WIDTH,
-  GREY_DOOR_X,
-  GREY_DOOR_Z,
+  MALL_DOOR_X,
+  MALL_DOOR_Z,
   PEDESTAL_CENTER_X,
   PEDESTAL_CENTER_Z,
   PEDESTAL_DEPTH,
@@ -25,22 +25,52 @@ import {
 } from "./island/constants";
 import * as CAVE from "./cave/constants";
 import * as STOCK from "./stockroom/constants";
-import * as FORMS from "./forms/constants";
+import * as MALL from "./mall/constants";
 import type { WorldId } from "./worldStore";
 
 // A level is everything the player controller needs to walk a world: the
 // floor height, the walkable rectangle, solid footprints to slide around, and
 // where to stand on arrival. Colliders are axis-aligned boxes on the XZ plane.
+// A world with more than one storey adds floor patches (raised floors and
+// ramps) and gives its colliders a vertical extent, so a balustrade upstairs
+// doesn't stop you walking underneath it.
 
 export interface Footprint {
   cx: number;
   cz: number;
   w: number;
   d: number;
+  // Vertical extent; without it the collider is infinitely tall. The player
+  // collides when their body (feet to head) overlaps it.
+  y0?: number;
+  y1?: number;
+}
+
+// A walkable surface above the base floor: flat at `y`, or a ramp rising
+// linearly from `y` at its low-coordinate edge to `y2` at its high-coordinate
+// edge along `axis`. The player stands on the highest surface under their
+// centre that isn't more than a step above their feet.
+export interface FloorPatch {
+  x0: number;
+  x1: number;
+  z0: number;
+  z1: number;
+  y: number;
+  y2?: number;
+  axis?: "x" | "z";
+}
+
+export function patchHeight(p: FloorPatch, x: number, z: number) {
+  if (p.y2 === undefined) return p.y;
+  const t =
+    p.axis === "x" ? (x - p.x0) / (p.x1 - p.x0) : (z - p.z0) / (p.z1 - p.z0);
+  return p.y + (p.y2 - p.y) * Math.min(1, Math.max(0, t));
 }
 
 export interface Level {
+  // The base floor, everywhere inside the bounds.
   floorY: number;
+  floors?: FloorPatch[];
   bounds: { minX: number; maxX: number; minZ: number; maxZ: number };
   colliders: Footprint[];
   spawn: SpawnPoint;
@@ -57,30 +87,44 @@ export interface DoorSpot {
   to: WorldId;
   x: number;
   z: number;
+  // Floor height at the door, in worlds with more than one storey.
+  y?: number;
   // Unit vector out of the door's front face, on the XZ plane.
   normal: [number, number];
 }
 
 // The door model is 1.9 m wide and 0.55 m deep; a door facing along x needs
 // the footprint turned.
-function doorFootprint({ x, z, normal }: DoorSpot): Footprint {
+// A door given a floor height only stops you on that storey.
+function doorFootprint({ x, y, z, normal }: DoorSpot): Footprint {
   const alongX = Math.abs(normal[0]) > 0.5;
-  return { cx: x, cz: z, w: alongX ? 0.55 : 1.9, d: alongX ? 1.9 : 0.55 };
+  return {
+    cx: x,
+    cz: z,
+    w: alongX ? 0.55 : 1.9,
+    d: alongX ? 1.9 : 0.55,
+    ...(y !== undefined && { y0: y - 1, y1: y + 4.5 }),
+  };
 }
 
 // Where to stand on arriving through a door: `out` metres in front of it,
 // facing away from it.
-function inFrontOf({ x, z, normal }: DoorSpot, out: number): SpawnPoint {
+function inFrontOf({ x, z, y, normal }: DoorSpot, out: number): SpawnPoint {
   const [nx, nz] = normal;
   // yaw 0 looks toward -z and +yaw turns left, so facing (nx, nz) is
   // atan2(-nx, -nz).
   // (+ 0 turns -0 into 0, so a door facing +z gives π rather than -π.)
-  return { x: x + nx * out, z: z + nz * out, yaw: Math.atan2(-nx + 0, -nz) };
+  return {
+    x: x + nx * out,
+    z: z + nz * out,
+    yaw: Math.atan2(-nx + 0, -nz),
+    ...(y !== undefined && { y }),
+  };
 }
 
 const ISLAND_DOORS: DoorSpot[] = [
   { to: "cave", x: DOOR_X, z: DOOR_Z, normal: [0, 1] },
-  { to: "forms", x: GREY_DOOR_X, z: GREY_DOOR_Z, normal: [-1, 0] },
+  { to: "mall", x: MALL_DOOR_X, z: MALL_DOOR_Z, normal: [-1, 0] },
 ];
 const CAVE_DOORS: DoorSpot[] = [
   { to: "island", x: CAVE.CAVE_DOOR_X, z: CAVE.CAVE_DOOR_Z, normal: [0, -1] },
@@ -90,28 +134,12 @@ const CAVE_DOORS: DoorSpot[] = [
     z: CAVE.STAFF_DOOR_Z,
     normal: [0, 1],
   },
-  { to: "forms", x: CAVE.GREY_DOOR_X, z: CAVE.GREY_DOOR_Z, normal: [1, 0] },
+  { to: "mall", x: CAVE.MALL_DOOR_X, z: CAVE.MALL_DOOR_Z, normal: [1, 0] },
 ];
 const STOCKROOM_DOORS: DoorSpot[] = [
   { to: "cave", x: STOCK.DOOR_X, z: STOCK.DOOR_Z, normal: [0, -1] },
-  { to: "forms", x: STOCK.GREY_DOOR_X, z: STOCK.GREY_DOOR_Z, normal: [0, 1] },
+  { to: "mall", x: STOCK.MALL_DOOR_X, z: STOCK.MALL_DOOR_Z, normal: [0, 1] },
 ];
-export const FORMS_DOORS: DoorSpot[] = [
-  { to: "cave", x: FORMS.CAVE_DOOR_X, z: FORMS.CAVE_DOOR_Z, normal: [0, 1] },
-  {
-    to: "island",
-    x: FORMS.ISLAND_DOOR_X,
-    z: FORMS.ISLAND_DOOR_Z,
-    normal: [-1, 0],
-  },
-  {
-    to: "stockroom",
-    x: FORMS.STOCKROOM_DOOR_X,
-    z: FORMS.STOCKROOM_DOOR_Z,
-    normal: [1, 0],
-  },
-];
-
 function door(doors: DoorSpot[], to: WorldId) {
   return doors.find((d) => d.to === to)!;
 }
@@ -120,9 +148,11 @@ export interface SpawnPoint {
   x: number;
   z: number;
   yaw: number;
+  // Floor height to stand on, if not the level's base floor.
+  y?: number;
 }
 
-// Solid things on the island platform, doors aside (the forms share them).
+// Solid things on the island platform, doors aside.
 const ISLAND_PROPS: Footprint[] = [
   { cx: POOL_CENTER_X, cz: POOL_CENTER_Z, w: POOL_WIDTH, d: POOL_DEPTH },
   {
@@ -162,7 +192,7 @@ export const ISLAND_LEVEL: Level = {
   arrivals: {
     // Just stepped out of the door, facing away from it toward the pool.
     cave: inFrontOf(door(ISLAND_DOORS, "cave"), 3.5),
-    forms: inFrontOf(door(ISLAND_DOORS, "forms"), 3.5),
+    mall: inFrontOf(door(ISLAND_DOORS, "mall"), 3.5),
   },
   doors: ISLAND_DOORS,
 };
@@ -215,9 +245,9 @@ export const CAVE_LEVEL: Level = {
       z: CAVE.STAFF_DOOR_Z + 3,
       yaw: Math.PI - 0.45,
     },
-    // Out of the grey door, turned a little toward the screens.
-    forms: {
-      ...inFrontOf(door(CAVE_DOORS, "forms"), 3),
+    // Out of the mall entrance, turned a little toward the screens.
+    mall: {
+      ...inFrontOf(door(CAVE_DOORS, "mall"), 3),
       yaw: -Math.PI / 2 + 0.5,
     },
   },
@@ -245,21 +275,32 @@ export const STOCKROOM_LEVEL: Level = {
   spawn: { x: 0, z: STOCK.HALF_L - 4, yaw: 0 },
   arrivals: {
     cave: { x: 0, z: STOCK.HALF_L - 4, yaw: 0 },
-    forms: inFrontOf(door(STOCKROOM_DOORS, "forms"), 3),
+    mall: inFrontOf(door(STOCKROOM_DOORS, "mall"), 3),
   },
   doors: STOCKROOM_DOORS,
 };
 
-// The forms are the island's blockout, so they walk like the island: same
-// platform, pool, pedestal, columns and boombox table, with their own doors.
-export const FORMS_LEVEL: Level = {
-  ...ISLAND_LEVEL,
-  colliders: [...ISLAND_PROPS, ...FORMS_DOORS.map(doorFootprint)],
-  spawn: inFrontOf(door(FORMS_DOORS, "island"), 3.5),
-  arrivals: {
-    island: inFrontOf(door(FORMS_DOORS, "island"), 3.5),
-    cave: inFrontOf(door(FORMS_DOORS, "cave"), 3.5),
-    stockroom: inFrontOf(door(FORMS_DOORS, "stockroom"), 3.5),
+// The mall: two storeys round an open atrium. The ground floor is the
+// level's floor; the gallery ring and the two (stopped) escalators up to it
+// are floor patches. Everything solid has a vertical extent, so the
+// gallery's balustrades don't wall off the concourse below.
+const MALL_DOORS: DoorSpot[] = MALL.DOORS;
+
+export const MALL_LEVEL: Level = {
+  floorY: 0,
+  floors: MALL.FLOORS,
+  bounds: {
+    minX: -MALL.HALF_W,
+    maxX: MALL.HALF_W,
+    minZ: -MALL.HALF_L,
+    maxZ: MALL.HALF_L,
   },
-  doors: FORMS_DOORS,
+  colliders: [...MALL.COLLIDERS, ...MALL_DOORS.map(doorFootprint)],
+  spawn: { x: 0, z: MALL.HALF_L - 5, yaw: 0 },
+  arrivals: {
+    island: inFrontOf(door(MALL_DOORS, "island"), 3.5),
+    cave: inFrontOf(door(MALL_DOORS, "cave"), 3.5),
+    stockroom: inFrontOf(door(MALL_DOORS, "stockroom"), 3.5),
+  },
+  doors: MALL_DOORS,
 };

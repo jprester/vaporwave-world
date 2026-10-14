@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo } from "react";
+import { useMemo } from "react";
 import {
   Bloom,
   ChromaticAberration,
@@ -11,16 +11,15 @@ import { Vector2 } from "three";
 import { useControls } from "leva";
 import type { WorldId } from "./worldStore";
 
-// The forms' own composer lives in their lazily loaded chunk (with the
-// ambient occlusion library), so the first load doesn't carry it.
-const FormsEffects = lazy(() =>
-  import("./forms/FormsWorld").then((m) => ({ default: m.FormsEffects })),
-);
+// Post-processing per world. Every world so far takes the vaporwave grade:
+// bloom, chromatic aberration, vignette and film noise, tweakable from the
+// Leva panel in dev. A world can adjust it here (the mall's neon blooms a
+// little wider and its corners are darker), or render its own composer
+// instead; keep a world's heavy post libraries in its own lazy chunk.
+const GRADE: Partial<Record<WorldId, { bloom: number; radius: number; vignette: number }>> = {
+  mall: { bloom: 0.75, radius: 0.55, vignette: 0.5 },
+};
 
-// Post-processing per world. The island, the cave and the stockroom share
-// the vaporwave grade: bloom, chromatic aberration, vignette and film noise,
-// tweakable from the Leva panel in dev. The forms get none of it (see
-// FormsEffects).
 export default function Effects({ world }: { world: WorldId }) {
   const effects = useControls("Effects", {
     bloomIntensity: { value: 0.5, min: 0, max: 5, step: 0.01 },
@@ -39,22 +38,16 @@ export default function Effects({ world }: { world: WorldId }) {
     [effects.chromaticOffset],
   );
 
-  if (world === "forms") {
-    return (
-      <Suspense fallback={null}>
-        <FormsEffects />
-      </Suspense>
-    );
-  }
+  const grade = GRADE[world];
 
   return (
     <EffectComposer enableNormalPass={false} multisampling={4}>
       <Bloom
         mipmapBlur
-        intensity={effects.bloomIntensity}
+        intensity={grade?.bloom ?? effects.bloomIntensity}
         luminanceThreshold={effects.bloomThreshold}
         luminanceSmoothing={effects.bloomSmoothing}
-        radius={effects.bloomRadius}
+        radius={grade?.radius ?? effects.bloomRadius}
       />
       <ChromaticAberration
         offset={chromaticAberrationOffset}
@@ -64,7 +57,7 @@ export default function Effects({ world }: { world: WorldId }) {
       <Vignette
         eskil={false}
         offset={effects.vignetteOffset}
-        darkness={effects.vignetteDarkness}
+        darkness={grade?.vignette ?? effects.vignetteDarkness}
       />
       <Noise
         blendFunction={BlendFunction.OVERLAY}

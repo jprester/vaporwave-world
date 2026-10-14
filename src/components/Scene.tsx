@@ -15,8 +15,8 @@ import IslandFeed, { type FeedTextures } from "./IslandFeed";
 import IslandWorld from "./island/IslandWorld";
 import {
   CAVE_LEVEL,
-  FORMS_LEVEL,
   ISLAND_LEVEL,
+  MALL_LEVEL,
   STOCKROOM_LEVEL,
   type Level,
 } from "./levels";
@@ -28,11 +28,17 @@ import {
 } from "./musicStore";
 import StockroomWorld from "./stockroom/StockroomWorld";
 import { usePlayerController } from "./player/usePlayerController";
-import { getSnapshot, subscribe, travel, type WorldId } from "./worldStore";
+import {
+  getSnapshot,
+  isWorldReady,
+  subscribe,
+  travel,
+  type WorldId,
+} from "./worldStore";
 
-// The forms load lazily, code and assets, the first time a door to them is
-// in reach (see formsWanted below).
-const FormsWorld = lazy(() => import("./forms/FormsWorld"));
+// The mall loads lazily, the first time a door to it is in reach (see
+// mallWanted below).
+const MallWorld = lazy(() => import("./mall/MallWorld"));
 
 // All worlds stay mounted; only the current one is visible (and so drawn and
 // lit). Fog, the camera's near plane and the acoustics are per world: the
@@ -47,36 +53,36 @@ const FOG: Record<WorldId, Fog> = {
   island: new Fog(0xefb9d4, 80, 900),
   cave: new Fog(0x160e1c, 9, 46),
   stockroom: new Fog(0x0d0c14, 18, 66),
-  // A white haze that swallows the ground grid well before the horizon.
-  forms: new Fog(0xe9e9e6, 30, 320),
+  // Night air, blue-black, deepening down the length of the atrium.
+  mall: new Fog(0x0a0c1a, 28, 120),
 };
 const CAMERA_NEAR: Record<WorldId, number> = {
   island: 1,
   cave: 0.05,
   stockroom: 0.05,
-  forms: 0.1,
+  mall: 0.05,
 };
 const LEVELS: Record<WorldId, Level> = {
   island: ISLAND_LEVEL,
   cave: CAVE_LEVEL,
   stockroom: STOCKROOM_LEVEL,
-  forms: FORMS_LEVEL,
+  mall: MALL_LEVEL,
 };
 // Island: straight from the boombox. Cave: out of the TVs. Stockroom: over
-// the warehouse PA, into a big reverberant hall. Forms: from the clay
-// boombox, mono and bone dry.
+// the warehouse PA, into a big reverberant hall. Mall: muzak from the
+// ceiling speakers, into a bigger, brighter one.
 const ACOUSTICS: Record<WorldId, Acoustics> = {
   island: "open",
   cave: "tv",
   stockroom: "hall",
-  forms: "dry",
+  mall: "mall",
 };
 // Indoors the music's placement and falloff are handled by the Web Audio
 // graph (see musicStore), so the base level is simply full. (On the island,
 // MusicPlayer sets the level from distance every frame.)
 const INDOOR_MUSIC_LEVEL = 1;
 // Worlds that show Plato TV somewhere, so the island feed must be rendering.
-const WATCHES_TV = new Set<WorldId>(["cave", "stockroom"]);
+const WATCHES_TV = new Set<WorldId>(["cave", "stockroom", "mall"]);
 
 export default function Scene() {
   const { camera, gl, scene } = useThree();
@@ -89,13 +95,13 @@ export default function Scene() {
   const islandGroup = useRef<Group>(null);
   const caveGroup = useRef<Group>(null);
   const stockroomGroup = useRef<Group>(null);
-  const formsGroup = useRef<Group>(null);
-  // Mount the forms once they're wanted: the player is at a door to them, on
-  // the way there, or started there. They stay mounted after that.
-  const [formsWanted, setFormsWanted] = useState(false);
-  const wantForms =
-    world === "forms" || destination === "forms" || nearDoor === "forms";
-  if (wantForms && !formsWanted) setFormsWanted(true);
+  const mallGroup = useRef<Group>(null);
+  // Mount the mall once it's wanted: the player is at a door to it, on the
+  // way there, or started there. It stays mounted after that.
+  const [mallWanted, setMallWanted] = useState(false);
+  const wantMall =
+    world === "mall" || destination === "mall" || nearDoor === "mall";
+  if (wantMall && !mallWanted) setMallWanted(true);
   const [feed, setFeed] = useState<FeedTextures | null>(null);
   const onFeedTextures = useCallback((t: FeedTextures) => setFeed(t), []);
 
@@ -106,8 +112,8 @@ export default function Scene() {
     cam.updateProjectionMatrix();
     setAcoustics(ACOUSTICS[world]);
     setNearBoombox(false);
-    // The island and the forms set the level from the boombox distance.
-    if (world !== "island" && world !== "forms") {
+    // The island sets the level from the boombox distance.
+    if (world !== "island") {
       setDistanceVolume(INDOOR_MUSIC_LEVEL);
     }
     return () => {
@@ -121,6 +127,8 @@ export default function Scene() {
         coordinateSystem:
           "x right, y up, z forward/back in Three.js world units",
         world: getSnapshot().world,
+        // False until a lazily loaded world has mounted.
+        ready: isWorldReady(getSnapshot().world),
         transition: getSnapshot().phase,
         nearDoor: getSnapshot().nearDoor,
         player: playerSnapshot.current,
@@ -171,17 +179,17 @@ export default function Scene() {
           feed={feed}
         />
       </group>
-      <group ref={formsGroup} visible={world === "forms"}>
-        {formsWanted && (
+      <group ref={mallGroup} visible={world === "mall"}>
+        {mallWanted && (
           <Suspense fallback={null}>
-            <FormsWorld active={world === "forms" && phase !== "out"} />
+            <MallWorld active={world === "mall" && phase !== "out"} feed={feed} />
           </Suspense>
         )}
       </group>
       <IslandFeed
         enabled={WATCHES_TV.has(world) || WATCHES_TV.has(destination)}
         island={islandGroup}
-        others={[caveGroup, stockroomGroup, formsGroup]}
+        others={[caveGroup, stockroomGroup, mallGroup]}
         islandFog={FOG.island}
         onTextures={onFeedTextures}
       />

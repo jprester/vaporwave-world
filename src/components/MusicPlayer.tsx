@@ -26,16 +26,16 @@ const AUDIO_MAX_DISTANCE = 45;
 const INTERACT_DISTANCE = 9;
 const FOCUS_DOT_THRESHOLD = 0.55; // ~57° half-angle
 
-// Also used by the forms, whose clay boombox stands in the same place.
-export function DistanceVolume({ active }: { active: boolean }) {
+function DistanceVolume({ active }: { active: boolean }) {
   const camera = useThree((s) => s.camera);
   const camDir = useRef(new Vector3());
 
   useFrame(() => {
-    // Away from the island, the other worlds set the music's level
-    // themselves. Only the active DistanceVolume may clear the boombox prompt:
-    // the island's and the forms' both stay mounted.
-    if (!active) return;
+    // Away from the island, the cave sets the music's level itself.
+    if (!active) {
+      setNearBoombox(false);
+      return;
+    }
     const dx = camera.position.x - BOOMBOX_CENTER_X;
     const dz = camera.position.z - BOOMBOX_CENTER_Z;
     const dist = Math.sqrt(dx * dx + dz * dz);

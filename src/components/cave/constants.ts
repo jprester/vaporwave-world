@@ -45,7 +45,7 @@ export const CART_W = 1.2;
 export const CART_D = 0.8;
 export const CART_H = 1.05;
 
-// The grey door, on the west wall near the entrance, facing into the room
-// (+x). It leads to the forms.
-export const GREY_DOOR_X = -HALF_W + 0.35;
-export const GREY_DOOR_Z = 12.8;
+// The mall entrance, on the west wall near the entrance, facing into the room
+// (+x). It leads to the mall.
+export const MALL_DOOR_X = -HALF_W + 0.35;
+export const MALL_DOOR_Z = 12.8;
