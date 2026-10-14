@@ -42,6 +42,10 @@ interface Snapshot {
   cameFrom: WorldId | null;
   // Destination of the door the player is at and looking at, if any.
   nearDoor: WorldId | null;
+  // Which trigger set nearDoor. Two doors can lead to the same world (the
+  // island's and the stockroom's both go to the cave), so a trigger may only
+  // clear the state it set itself.
+  nearDoorOwner: string | null;
 }
 
 const start = initialWorld();
@@ -51,6 +55,7 @@ let snapshot: Snapshot = {
   phase: "idle",
   cameFrom: DEFAULT_ORIGIN[start],
   nearDoor: null,
+  nearDoorOwner: null,
 };
 
 const listeners = new Set<() => void>();
@@ -76,20 +81,22 @@ export function travel(to?: WorldId) {
   const from = snapshot.world;
   const destination = to ?? snapshot.nearDoor ?? DOORS[from][0];
   if (destination === from || !DOORS[from].includes(destination)) return;
-  update({ phase: "out", destination, nearDoor: null });
+  update({ phase: "out", destination, nearDoor: null, nearDoorOwner: null });
   window.setTimeout(() => {
     update({ world: destination, phase: "in", cameFrom: from });
     window.setTimeout(() => update({ phase: "idle" }), FADE_IN_MS);
   }, FADE_OUT_MS);
 }
 
-// Each DoorTrigger reports for its own door, so two doors in one world don't
-// clear each other.
-export function setNearDoor(door: WorldId, near: boolean) {
+// Each DoorTrigger reports for its own door (identified by `owner`), so doors
+// in other worlds, or other doors leading to the same place, never clear it.
+export function setNearDoor(owner: string, door: WorldId, near: boolean) {
   if (near) {
-    if (snapshot.nearDoor !== door) update({ nearDoor: door });
-  } else if (snapshot.nearDoor === door) {
-    update({ nearDoor: null });
+    if (snapshot.nearDoorOwner !== owner || snapshot.nearDoor !== door) {
+      update({ nearDoor: door, nearDoorOwner: owner });
+    }
+  } else if (snapshot.nearDoorOwner === owner) {
+    update({ nearDoor: null, nearDoorOwner: null });
   }
 }
 

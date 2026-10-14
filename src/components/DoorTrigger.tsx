@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useId, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Vector3 } from "three";
 import { setNearDoor, type WorldId } from "./worldStore";
@@ -22,12 +22,13 @@ interface Props {
 
 export default function DoorTrigger({ to, x, z, normal, active }: Props) {
   const camera = useThree((s) => s.camera);
+  const owner = useId();
   const dir = useRef(new Vector3());
   const [nx, nz] = normal;
 
   useFrame(() => {
     if (!active) {
-      setNearDoor(to, false);
+      setNearDoor(owner, to, false);
       return;
     }
     const dx = camera.position.x - x;
@@ -36,14 +37,14 @@ export default function DoorTrigger({ to, x, z, normal, active }: Props) {
     const out = dx * nx + dz * nz;
     const side = Math.abs(dx * -nz + dz * nx);
     if (out <= 0 || out > REACH || side > HALF_WIDTH) {
-      setNearDoor(to, false);
+      setNearDoor(owner, to, false);
       return;
     }
     camera.getWorldDirection(dir.current);
     const len = Math.hypot(dir.current.x, dir.current.z) || 1;
     // Looking back into the door means looking against its normal.
     const dot = -(dir.current.x * nx + dir.current.z * nz) / len;
-    setNearDoor(to, dot >= FOCUS_DOT);
+    setNearDoor(owner, to, dot >= FOCUS_DOT);
   });
 
   return null;
