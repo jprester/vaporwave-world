@@ -9,10 +9,18 @@ import {
 import { BlendFunction } from "postprocessing";
 import { Vector2 } from "three";
 import { useControls } from "leva";
+import type { WorldId } from "./worldStore";
 
-// The vaporwave grade shared by every world: bloom, chromatic aberration,
-// vignette and film noise. Tweakable from the Leva panel in dev.
-export default function Effects() {
+// Post-processing per world. Every world so far takes the vaporwave grade:
+// bloom, chromatic aberration, vignette and film noise, tweakable from the
+// Leva panel in dev. A world can adjust it here (the mall's neon blooms a
+// little wider and its corners are darker), or render its own composer
+// instead; keep a world's heavy post libraries in its own lazy chunk.
+const GRADE: Partial<Record<WorldId, { bloom: number; radius: number; vignette: number }>> = {
+  mall: { bloom: 0.75, radius: 0.55, vignette: 0.5 },
+};
+
+export default function Effects({ world }: { world: WorldId }) {
   const effects = useControls("Effects", {
     bloomIntensity: { value: 0.5, min: 0, max: 5, step: 0.01 },
     bloomThreshold: { value: 1.2, min: 0, max: 3, step: 0.01 },
@@ -30,14 +38,16 @@ export default function Effects() {
     [effects.chromaticOffset],
   );
 
+  const grade = GRADE[world];
+
   return (
     <EffectComposer enableNormalPass={false} multisampling={4}>
       <Bloom
         mipmapBlur
-        intensity={effects.bloomIntensity}
+        intensity={grade?.bloom ?? effects.bloomIntensity}
         luminanceThreshold={effects.bloomThreshold}
         luminanceSmoothing={effects.bloomSmoothing}
-        radius={effects.bloomRadius}
+        radius={grade?.radius ?? effects.bloomRadius}
       />
       <ChromaticAberration
         offset={chromaticAberrationOffset}
@@ -47,7 +57,7 @@ export default function Effects() {
       <Vignette
         eskil={false}
         offset={effects.vignetteOffset}
-        darkness={effects.vignetteDarkness}
+        darkness={grade?.vignette ?? effects.vignetteDarkness}
       />
       <Noise
         blendFunction={BlendFunction.OVERLAY}

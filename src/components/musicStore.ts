@@ -47,10 +47,12 @@ let autoStartArmed = false;
 
 // Web Audio graph, built on the first play (it needs a user gesture):
 //
-//   <audio> → musicGain ─┬─ directGain ─────────────────────────────┬→ master → out
+//   <audio> → musicGain ─┬─ directGain ──────────────────────────────┬→ master → out
 //                        ├─ TV speaker (band-limit, drive) → panner ─┤   (mute)
-//                        └─ PA horn (band-limit) ─┬─ paDry ──────────┤
-//                                                 └─ reverb → paWet ─┤
+//                        ├─ PA horn (band-limit) ─┬─ paDry ──────────┤
+//                        │                        └─ reverb → paWet ─┤
+//                        └─ ceiling speaker (mono, ─┬─ mallDry ──────┤
+//                             band-limit)           └─ atrium → mallWet
 //   room tone + fluorescent hum ────────────── ambienceGain ─────────┘
 //
 // On the island the music plays straight ("open"). In the cave it comes out of
@@ -58,13 +60,23 @@ let autoStartArmed = false;
 // louder and shifts as you walk and turn, over the empty room's air handling
 // and hum. In the stockroom ("hall") it plays over the warehouse PA: thin
 // horn speakers high up, mostly heard as a long wash of reverb off concrete.
+// In the mall ("mall") it's muzak: summed to mono and played through cheap
+// ceiling speakers all over a glass-roofed marble atrium, so it arrives from
+// nowhere in particular as a bright, long reverb, over the air handling.
 // If Web Audio is unavailable, volume falls back to the elements' own volume
 // and there are no effects.
-export type Acoustics = "open" | "tv" | "hall";
+export type Acoustics = "open" | "tv" | "hall" | "mall";
 const TV_LEVEL = 1.1;
 const PA_DRY_LEVEL = 0.35;
 const PA_WET_LEVEL = 1.25;
-const AMBIENCE_LEVEL: Record<Acoustics, number> = { open: 0, tv: 1, hall: 0.8 };
+const MALL_DRY_LEVEL = 0.3;
+const MALL_WET_LEVEL = 1.1;
+const AMBIENCE_LEVEL: Record<Acoustics, number> = {
+  open: 0,
+  tv: 1,
+  hall: 0.8,
+  mall: 0.45,
+};
 let acoustics: Acoustics = "open";
 let audioCtx: AudioContext | null = null;
 let graphFailed = false;
@@ -74,6 +86,8 @@ let tvGain: GainNode | null = null;
 let tvPanner: PannerNode | null = null;
 let paDry: GainNode | null = null;
 let paWet: GainNode | null = null;
+let mallDry: GainNode | null = null;
+let mallWet: GainNode | null = null;
 let ambienceGain: GainNode | null = null;
 let master: GainNode | null = null;
 
@@ -128,11 +142,45 @@ function buildAmbience(ctx: AudioContext, out: AudioNode) {
   buzz.start();
 }
 
-// A synthetic impulse response for a big, empty concrete hall: a few discrete
-// early reflections, then a dense noise tail that decays over ~4 s and loses
-// its highs as it goes.
-function hallImpulse(ctx: AudioContext) {
-  const seconds = 4.2;
+// A synthetic impulse response for a big empty space: a few discrete early
+// reflections, then a dense noise tail that decays and loses its highs as it
+// goes. The stockroom's concrete hall (the default) rings for ~4 s and goes
+// dull fast; the mall's glass-and-marble atrium rings longer and brighter,
+// with its first reflections further off.
+interface Space {
+  seconds: number;
+  brightness: number; // tail lowpass at the start (0..1)
+  dulling: number; // how much of that it loses by the end
+  decay: number; // envelope exponent
+  reflections: [number, number][]; // [ms, gain]
+}
+const CONCRETE_HALL: Space = {
+  seconds: 4.2,
+  brightness: 0.85,
+  dulling: 0.75,
+  decay: 3.2,
+  reflections: [
+    [23, 0.5],
+    [41, 0.35],
+    [67, 0.3],
+    [96, 0.22],
+  ],
+};
+const ATRIUM: Space = {
+  seconds: 5.6,
+  brightness: 0.95,
+  dulling: 0.6,
+  decay: 2.7,
+  reflections: [
+    [38, 0.4],
+    [71, 0.32],
+    [112, 0.28],
+    [163, 0.2],
+  ],
+};
+
+function hallImpulse(ctx: AudioContext, space: Space = CONCRETE_HALL) {
+  const { seconds } = space;
   const length = Math.floor(ctx.sampleRate * seconds);
   const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
   for (let ch = 0; ch < 2; ch++) {
@@ -141,17 +189,12 @@ function hallImpulse(ctx: AudioContext) {
     for (let i = 0; i < length; i++) {
       const t = i / length;
       // One-pole lowpass whose cutoff falls over the tail.
-      const k = 0.85 - 0.75 * t;
+      const k = space.brightness - space.dulling * t;
       lp += (Math.random() * 2 - 1 - lp) * k;
-      data[i] = lp * Math.pow(1 - t, 3.2) * 0.6;
+      data[i] = lp * Math.pow(1 - t, space.decay) * 0.6;
     }
     // Early reflections off the far walls (slightly different per ear).
-    for (const [ms, gain] of [
-      [23, 0.5],
-      [41, 0.35],
-      [67, 0.3],
-      [96, 0.22],
-    ]) {
+    for (const [ms, gain] of space.reflections) {
       const at = Math.floor(((ms + ch * 7) / 1000) * ctx.sampleRate);
       data[at] += gain * (ch ? -1 : 1);
     }
@@ -207,6 +250,28 @@ function ensureGraph() {
     paLow.connect(paDry).connect(master);
     paLow.connect(reverb).connect(paWet).connect(master);
 
+    // Mall ceiling speakers: the track summed to mono (a one-channel node with
+    // an explicit channel count downmixes), small cones with no real bass,
+    // into the atrium.
+    const mallMono = ctx.createGain();
+    mallMono.channelCount = 1;
+    mallMono.channelCountMode = "explicit";
+    mallMono.channelInterpretation = "speakers";
+    const mallHigh = ctx.createBiquadFilter();
+    mallHigh.type = "highpass";
+    mallHigh.frequency.value = 180;
+    const mallLow = ctx.createBiquadFilter();
+    mallLow.type = "lowpass";
+    mallLow.frequency.value = 6500;
+    mallLow.Q.value = 1.1;
+    const atrium = ctx.createConvolver();
+    atrium.buffer = hallImpulse(ctx, ATRIUM);
+    mallDry = ctx.createGain();
+    mallWet = ctx.createGain();
+    musicGain.connect(mallMono).connect(mallHigh).connect(mallLow);
+    mallLow.connect(mallDry).connect(master);
+    mallLow.connect(atrium).connect(mallWet).connect(master);
+
     musicGain.connect(directGain).connect(master);
     musicGain
       .connect(tvHigh)
@@ -234,15 +299,27 @@ function ensureGraph() {
 }
 
 function applyAcoustics(immediate = false) {
-  if (!audioCtx || !directGain || !tvGain || !ambienceGain || !paDry || !paWet)
+  if (
+    !audioCtx ||
+    !directGain ||
+    !tvGain ||
+    !ambienceGain ||
+    !paDry ||
+    !paWet ||
+    !mallDry ||
+    !mallWet
+  )
     return;
   const tv = acoustics === "tv";
   const hall = acoustics === "hall";
+  const mall = acoustics === "mall";
   const targets: [AudioParam, number][] = [
     [directGain.gain, acoustics === "open" ? 1 : 0],
     [tvGain.gain, tv ? TV_LEVEL : 0],
     [paDry.gain, hall ? PA_DRY_LEVEL : 0],
     [paWet.gain, hall ? PA_WET_LEVEL : 0],
+    [mallDry.gain, mall ? MALL_DRY_LEVEL : 0],
+    [mallWet.gain, mall ? MALL_WET_LEVEL : 0],
     [ambienceGain.gain, AMBIENCE_LEVEL[acoustics]],
   ];
   const now = audioCtx.currentTime;

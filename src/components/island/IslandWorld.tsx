@@ -16,6 +16,7 @@ import { useControls } from "leva";
 import skyVertexShader from "../../shaders/sky.vert.glsl";
 import skyFragmentShader from "../../shaders/sky.frag.glsl";
 import DoorTrigger from "../DoorTrigger";
+import MallDoor from "../mall/MallDoor";
 import MusicPlayer from "../MusicPlayer";
 import FloatingFloor from "./FloatingFloor";
 import PlatoSign from "./PlatoSign";
@@ -28,6 +29,9 @@ import {
 import {
   DOOR_X,
   DOOR_Z,
+  FLOOR_HEIGHT,
+  MALL_DOOR_X,
+  MALL_DOOR_Z,
   OCEAN_SIZE,
   SUN_AZIMUTH,
   SUN_ELEVATION,
@@ -150,6 +154,19 @@ export default function IslandWorld({ active }: { active: boolean }) {
       <WomanStatue />
       <FloorDoor />
       <DoorTrigger to="cave" x={DOOR_X} z={DOOR_Z} normal={[0, 1]} active={active} />
+      <MallDoor
+        x={MALL_DOOR_X}
+        y={FLOOR_HEIGHT}
+        z={MALL_DOOR_Z}
+        normal={[-1, 0]}
+      />
+      <DoorTrigger
+        to="mall"
+        x={MALL_DOOR_X}
+        z={MALL_DOOR_Z}
+        normal={[-1, 0]}
+        active={active}
+      />
       <MusicPlayer active={active} />
     </group>
   );

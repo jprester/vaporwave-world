@@ -91,6 +91,11 @@ export function lot(id: string): Lot {
   return LOTS.find((l) => l.id === id)!;
 }
 
+// The mall entrance, in the north wall behind the spare suns, facing down
+// the warehouse (+z). It leads to the mall.
+export const MALL_DOOR_X = 10.6;
+export const MALL_DOOR_Z = -HALF_L + 0.35;
+
 // The spare suns, leaning on the north wall at the end of the central aisle.
 export const SUN_Z = -HALF_L + 0.9;
 export const SUN_DIAMETER = 7;

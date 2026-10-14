@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Euler, MathUtils, Vector3 } from "three";
-import type { Footprint, Level, SpawnPoint } from "../levels";
+import { patchHeight, type Footprint, type Level, type SpawnPoint } from "../levels";
 
 // First-person kinematic walker: pointer-lock mouse look, WASD / arrows,
-// Space to jump. The level supplies floor height, walkable bounds and
-// colliders. Changing the level or spawn point teleports the player there.
+// Space to jump. The level supplies floor height (plus any raised floors and
+// ramps), walkable bounds and colliders. Changing the level or spawn point
+// teleports the player there.
 
 const LOOK_SENSITIVITY = 0.002;
 const PLAYER_EYE_HEIGHT = 1.7;
@@ -16,6 +17,15 @@ const AIR_ACCELERATION = 10;
 const GRAVITY = 34;
 const JUMP_SPEED = 10.5;
 const PITCH_LIMIT = Math.PI / 2 - 0.01;
+// Feet to the top of the head, for colliders with a vertical extent.
+const BODY_HEIGHT = 1.9;
+// How far a floor may rise under you and still be walked onto (ramp, step),
+// and how far it may drop away and still be followed down without falling.
+const STEP_UP = 0.6;
+const STEP_DOWN = 0.6;
+// A long frame (tab switch, a hitch) is simulated as this long at most, so
+// nothing tunnels through a collider or off a ramp.
+const MAX_DELTA = 0.1;
 
 export interface PlayerSnapshot {
   x: number;
@@ -45,7 +55,9 @@ export function usePlayerController(
   const isGrounded = useRef(true);
   const jumpWasDown = useRef(false);
   const jumpCount = useRef(0);
-  const lastJumpPeakY = useRef(level.floorY + PLAYER_EYE_HEIGHT);
+  const lastJumpPeakY = useRef(
+    (spawn.y ?? level.floorY) + PLAYER_EYE_HEIGHT,
+  );
   const velocity = useMemo(() => new Vector3(), []);
   const forward = useMemo(() => new Vector3(), []);
   const right = useMemo(() => new Vector3(), []);
@@ -56,19 +68,23 @@ export function usePlayerController(
   frozenRef.current = frozen;
   const snapshot = useRef<PlayerSnapshot>({
     x: spawn.x,
-    y: level.floorY + PLAYER_EYE_HEIGHT,
+    y: (spawn.y ?? level.floorY) + PLAYER_EYE_HEIGHT,
     z: spawn.z,
     velocity: { x: 0, y: 0, z: 0 },
     yaw: spawn.yaw,
     pitch: 0,
     grounded: true,
     jumpCount: 0,
-    lastJumpPeakY: level.floorY + PLAYER_EYE_HEIGHT,
+    lastJumpPeakY: (spawn.y ?? level.floorY) + PLAYER_EYE_HEIGHT,
   });
 
   // Spawn (and respawn whenever the level or spawn point changes).
   useEffect(() => {
-    camera.position.set(spawn.x, level.floorY + PLAYER_EYE_HEIGHT, spawn.z);
+    camera.position.set(
+      spawn.x,
+      (spawn.y ?? level.floorY) + PLAYER_EYE_HEIGHT,
+      spawn.z,
+    );
     camera.rotation.order = "YXZ";
     yaw.current = spawn.yaw;
     pitch.current = 0;
@@ -86,10 +102,12 @@ export function usePlayerController(
       yaw.current = y;
       pitch.current = MathUtils.clamp(p, -PITCH_LIMIT, PITCH_LIMIT);
     };
-    // Debug hook: stand at a point in the current level.
-    window.setPlayerPosition = (x: number, z: number) => {
+    // Debug hook: stand at a point in the current level, optionally on the
+    // floor at height y (feet).
+    window.setPlayerPosition = (x: number, z: number, y?: number) => {
       camera.position.x = x;
       camera.position.z = z;
+      if (y !== undefined) camera.position.y = y + PLAYER_EYE_HEIGHT;
       velocity.set(0, 0, 0);
     };
     return () => {
@@ -149,7 +167,8 @@ export function usePlayerController(
     };
   }, [gl]);
 
-  useFrame((_, delta) => {
+  useFrame((_, frameDelta) => {
+    const delta = Math.min(frameDelta, MAX_DELTA);
     euler.set(pitch.current, yaw.current, 0);
     camera.quaternion.setFromEuler(euler);
 
@@ -194,19 +213,17 @@ export function usePlayerController(
     const blend = Math.min(1, acceleration * delta);
     velocity.x += (targetVelocity.x - velocity.x) * blend;
     velocity.z += (targetVelocity.z - velocity.z) * blend;
-    velocity.y -= GRAVITY * delta;
+    // Standing on something, there's nothing to fall into: the floor check
+    // below follows a floor that drops away (a ramp, a step) or lets go when
+    // it drops too far. Applying gravity anyway would sink the feet into the
+    // floor for the collider checks, by more the longer the frame.
+    if (!isGrounded.current) velocity.y -= GRAVITY * delta;
 
+    // Where the feet were before this frame's move: a fall can carry them
+    // through a floor in one frame, and that floor should still catch them.
+    const startFeetY = camera.position.y - PLAYER_EYE_HEIGHT;
     camera.position.addScaledVector(velocity, delta);
     lastJumpPeakY.current = Math.max(lastJumpPeakY.current, camera.position.y);
-
-    const floorEyeY = level.floorY + PLAYER_EYE_HEIGHT;
-    if (camera.position.y <= floorEyeY) {
-      camera.position.y = floorEyeY;
-      velocity.y = 0;
-      isGrounded.current = true;
-    } else {
-      isGrounded.current = false;
-    }
 
     const { bounds } = level;
     camera.position.x = MathUtils.clamp(
@@ -220,8 +237,37 @@ export function usePlayerController(
       bounds.maxZ - PLAYER_RADIUS,
     );
 
+    const feetY = camera.position.y - PLAYER_EYE_HEIGHT;
     for (const box of level.colliders) {
+      if (box.y0 !== undefined && feetY + BODY_HEIGHT <= box.y0) continue;
+      if (box.y1 !== undefined && feetY >= box.y1) continue;
       pushOutOfFootprint(camera, velocity, box);
+    }
+
+    // Stand on the floor under you: land on it, climb a ramp, or follow it
+    // down a step or a slope rather than launching off the top.
+    const floorY = floorUnder(
+      level,
+      camera.position.x,
+      camera.position.z,
+      Math.max(feetY, startFeetY),
+    );
+    const floorEyeY = floorY + PLAYER_EYE_HEIGHT;
+    const wasGrounded = isGrounded.current;
+    if (camera.position.y <= floorEyeY) {
+      camera.position.y = floorEyeY;
+      velocity.y = 0;
+      isGrounded.current = true;
+    } else if (
+      wasGrounded &&
+      velocity.y <= 0 &&
+      camera.position.y - floorEyeY <= STEP_DOWN
+    ) {
+      camera.position.y = floorEyeY;
+      velocity.y = 0;
+      isGrounded.current = true;
+    } else {
+      isGrounded.current = false;
     }
 
     snapshot.current = {
@@ -242,6 +288,18 @@ export function usePlayerController(
   });
 
   return snapshot;
+}
+
+// The highest floor under (x, z) that isn't more than a step above the feet.
+function floorUnder(level: Level, x: number, z: number, feetY: number) {
+  let y = level.floorY;
+  if (!level.floors) return y;
+  for (const p of level.floors) {
+    if (x < p.x0 || x > p.x1 || z < p.z0 || z > p.z1) continue;
+    const h = patchHeight(p, x, z);
+    if (h > y && h <= feetY + STEP_UP) y = h;
+  }
+  return y;
 }
 
 function pushOutOfFootprint(

@@ -40,3 +40,8 @@ export const PEDESTAL_CENTER_Z = -2;
 
 export const DOOR_X = 6;
 export const DOOR_Z = -FLOOR_DEPTH / 2 + 0.5;
+
+// The mall entrance: a glass shop door standing on the east edge, between
+// two columns, facing in toward the pool (-x). It leads to the mall.
+export const MALL_DOOR_X = 26;
+export const MALL_DOOR_Z = -14.5;

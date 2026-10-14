@@ -14,6 +14,7 @@ import {
 } from "three";
 import type { FeedTextures } from "../IslandFeed";
 import DoorTrigger from "../DoorTrigger";
+import MallDoor from "../mall/MallDoor";
 import { setListenerPose, setTvSource } from "../musicStore";
 import {
   CRT_FEED,
@@ -35,6 +36,8 @@ import {
   CRT_D,
   CRT_H,
   CRT_W,
+  MALL_DOOR_X,
+  MALL_DOOR_Z,
   HALF_L,
   HALF_W,
   STAFF_DOOR_X,
@@ -100,6 +103,14 @@ export default function CaveWorld({ active, feed }: Props) {
         x={STAFF_DOOR_X}
         z={STAFF_DOOR_Z}
         normal={[0, 1]}
+        active={active}
+      />
+      <MallDoor x={MALL_DOOR_X} z={MALL_DOOR_Z} normal={[1, 0]} />
+      <DoorTrigger
+        to="mall"
+        x={MALL_DOOR_X}
+        z={MALL_DOOR_Z}
+        normal={[1, 0]}
         active={active}
       />
       <DoorTrigger
