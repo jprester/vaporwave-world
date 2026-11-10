@@ -38,6 +38,7 @@ import * as C from "./constants";
 // QA hook: ?freeze=1 holds water, palms, the floating ring and the neon
 // flicker still, so the flicker-diff tool can isolate geometry.
 const FREEZE = new URLSearchParams(window.location.search).has("freeze");
+const NO_SHADOW = new URLSearchParams(window.location.search).has("noshadow");
 import {
   makeCurtainTexture,
   makeDeckTexture,
@@ -79,7 +80,7 @@ export default function MotelWorld({ active }: Props) {
         color="#ff9a62"
         intensity={3.1}
         position={[SUN_DIR.x * 90, SUN_DIR.y * 90, SUN_DIR.z * 90]}
-        castShadow
+        castShadow={!NO_SHADOW}
         shadow-mapSize={[2048, 2048]}
         shadow-camera-left={-32}
         shadow-camera-right={32}
@@ -87,8 +88,8 @@ export default function MotelWorld({ active }: Props) {
         shadow-camera-bottom={-32}
         shadow-camera-near={1}
         shadow-camera-far={180}
-        shadow-bias={-0.0006}
-        shadow-normalBias={0.08}
+        shadow-bias={-0.0004}
+        shadow-normalBias={0.04}
       />
       <Sky />
       <Mountains />
@@ -162,9 +163,9 @@ function useAssets() {
       stuccoFlat: new MeshStandardMaterial({ color: "#dfa6ab", roughness: 0.9 }),
       stuccoDark: new MeshStandardMaterial({ color: "#c07f8d", roughness: 0.9 }),
       cream: new MeshStandardMaterial({ color: "#f2ddc6", roughness: 0.75 }),
-      teal: new MeshStandardMaterial({ color: "#1f7f7d", roughness: 0.5 }),
+      teal: new MeshStandardMaterial({ color: "#1f7f7d", roughness: 0.8 }),
       doorTeal: new MeshStandardMaterial({ color: "#1b6d70", roughness: 0.55 }),
-      chrome: new MeshStandardMaterial({ color: "#d3e3e5", metalness: 0.5, roughness: 0.42 }),
+      chrome: new MeshStandardMaterial({ color: "#d3e3e5", metalness: 0.4, roughness: 0.55 }),
       white: new MeshStandardMaterial({ color: "#efe6dc", roughness: 0.65 }),
       dark: new MeshStandardMaterial({ color: "#241a2b", roughness: 0.8 }),
       frame: new MeshStandardMaterial({ color: "#3a2433", roughness: 0.65 }),
@@ -561,7 +562,7 @@ function Building({ a }: { a: Assets }) {
       <mesh position={[0, 5.25, wallZ]} material={a.mats.stuccoFlat} castShadow>
         <boxGeometry args={[C.HALF_W * 2, 3.5, 0.2]} />
       </mesh>
-      <mesh position={[0, 3.41, wallZ - 0.02]} material={a.mats.teal}>
+      <mesh position={[0, 3.41, wallZ + 0.02]} material={a.mats.teal}>
         <boxGeometry args={[C.HALF_W * 2, 0.16, 0.26]} />
       </mesh>
 
@@ -569,7 +570,7 @@ function Building({ a }: { a: Assets }) {
       <mesh position={[0, 7.45, wallZ]} material={a.mats.stuccoFlat} castShadow>
         <boxGeometry args={[C.HALF_W * 2, 0.9, 0.32]} />
       </mesh>
-      <mesh position={[0, 7.94, wallZ]} material={a.mats.cream}>
+      <mesh position={[0, 7.92, wallZ]} material={a.mats.cream}>
         <boxGeometry args={[C.HALF_W * 2 + 0.2, 0.08, 0.42]} />
       </mesh>
       <mesh position={[0, 7.05, -17]} material={a.mats.dark}>
@@ -590,7 +591,7 @@ function Building({ a }: { a: Assets }) {
       </mesh>
 
       {/* A painted "MOTEL" band on the upper facade. */}
-      <mesh position={[6.2, 5.55, C.MOTEL_FRONT_Z + 0.005]} material={a.mats.cream}>
+      <mesh position={[6.2, 5.55, C.MOTEL_FRONT_Z + 0.03]} material={a.mats.cream}>
         <planeGeometry args={[4.6, 0.28]} />
       </mesh>
 
@@ -865,8 +866,8 @@ function Balcony({ a }: { a: Assets }) {
   const postCount = 14;
   return (
     <group name="balcony">
-      <mesh position={[0, C.STOREY_Y - 0.15, -12.8]} material={a.mats.cream} castShadow receiveShadow>
-        <boxGeometry args={[C.HALF_W * 2, 0.3, C.BALCONY_DEPTH]} />
+      <mesh position={[0, C.STOREY_Y - 0.15, -12.85]} material={a.mats.cream} castShadow>
+        <boxGeometry args={[C.HALF_W * 2, 0.3, C.BALCONY_DEPTH + 0.1]} />
       </mesh>
       <mesh position={[0, C.STOREY_Y - 0.16, C.BALCONY_Z + 0.04]} material={a.mats.teal}>
         <boxGeometry args={[C.HALF_W * 2, 0.34, 0.14]} />
@@ -893,7 +894,7 @@ function Balcony({ a }: { a: Assets }) {
       {Array.from({ length: postCount }, (_, i) => {
         const x = -C.HALF_W + 1.2 + (i / (postCount - 1)) * (railSpan - 2.4);
         return (
-          <mesh key={i} position={[x, C.STOREY_Y + 0.55, C.BALCONY_Z + 0.01]} material={a.mats.teal}>
+          <mesh key={i} position={[x, C.STOREY_Y + 0.55, C.BALCONY_Z + 0.014]} material={a.mats.teal}>
             <boxGeometry args={[0.06, 1.1, 0.06]} />
           </mesh>
         );
@@ -905,7 +906,7 @@ function Balcony({ a }: { a: Assets }) {
         { x: 7.6, color: a.mats.teal },
         { x: 12.4, color: a.mats.towelPink },
       ].map((towel) => (
-        <group key={towel.x} position={[towel.x, C.STOREY_Y + 0.66, C.BALCONY_Z + 0.02]}>
+        <group key={towel.x} position={[towel.x, C.STOREY_Y + 0.66, C.BALCONY_Z + 0.05]}>
           <mesh material={towel.color} castShadow>
             <boxGeometry args={[0.58, 0.52, 0.035]} />
           </mesh>
@@ -939,7 +940,7 @@ function Stair({ a }: { a: Assets }) {
         const z = C.STAIR_Z0 + (i + 0.5) * tread;
         return (
           <mesh key={i} position={[cx, top / 2, z]} material={a.mats.cream} castShadow>
-            <boxGeometry args={[width, top, tread + 0.02]} />
+            <boxGeometry args={[width, top, tread]} />
           </mesh>
         );
       })}
@@ -1299,7 +1300,7 @@ function Gate({ a }: { a: Assets }) {
           </mesh>
         </group>
       ))}
-      <mesh position={[wallX, 4.6, C.MOTEL_DOOR_Z]} material={a.mats.stuccoFlat} castShadow>
+      <mesh position={[wallX + 0.012, 4.6, C.MOTEL_DOOR_Z]} material={a.mats.stuccoFlat} castShadow>
         <boxGeometry args={[0.7, 1.5, C.GATE_PYLON_Z[1] - C.GATE_PYLON_Z[0] + 0.6]} />
       </mesh>
       <mesh position={[wallX, 5.42, C.MOTEL_DOOR_Z]} material={a.mats.cream}>

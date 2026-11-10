@@ -53,7 +53,9 @@ const PRESETS = {
 const baseUrl = arg("url", "http://localhost:3000/?qa=1");
 const presetName = arg("preset", null);
 const all = flag("all");
-const world = arg("world", presetName || all ? "motel" : null);
+// Presets and the motel hot spots are the common case; pass --world for
+// another world.
+const world = arg("world", "motel");
 const width = Number(arg("width", "1280"));
 const height = Number(arg("height", "720"));
 const frameCount = Math.max(2, Number(arg("frames", "4")));
