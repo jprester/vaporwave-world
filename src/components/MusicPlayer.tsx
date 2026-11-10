@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useGLTF } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Box3, Group, Vector3 } from "three";
@@ -71,6 +71,10 @@ export default function MusicPlayer({ active }: { active: boolean }) {
 
   const tableRef = useRef<Group>(null);
   const [tableTopY, setTableTopY] = useState<number | null>(null);
+  // The GLTF cache is shared with the other worlds; clone before moving.
+  const table = useMemo(() => tableScene.clone(true), [tableScene]);
+  const boombox = useMemo(() => boomboxScene.clone(true), [boomboxScene]);
+  const chair = useMemo(() => chairScene.clone(true), [chairScene]);
 
   useEffect(() => {
     if (!tableRef.current) return;
@@ -84,18 +88,18 @@ export default function MusicPlayer({ active }: { active: boolean }) {
     <>
       <primitive
         ref={tableRef}
-        object={tableScene}
+        object={table}
         position={[BOOMBOX_CENTER_X, FLOOR_TOP_Y, BOOMBOX_CENTER_Z]}
       />
       {tableTopY !== null && (
         <primitive
-          object={boomboxScene}
+          object={boombox}
           position={[BOOMBOX_CENTER_X, tableTopY, BOOMBOX_CENTER_Z]}
           rotation={[0, Math.PI, 0]}
         />
       )}
       <primitive
-        object={chairScene}
+        object={chair}
         position={[
           BOOMBOX_CENTER_X + CHAIR_OFFSET_X,
           FLOOR_TOP_Y,

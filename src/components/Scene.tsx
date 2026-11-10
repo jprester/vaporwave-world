@@ -17,6 +17,7 @@ import {
   CAVE_LEVEL,
   ISLAND_LEVEL,
   MALL_LEVEL,
+  MOTEL_LEVEL,
   STOCKROOM_LEVEL,
   type Level,
 } from "./levels";
@@ -39,6 +40,8 @@ import {
 // The mall loads lazily, the first time a door to it is in reach (see
 // mallWanted below).
 const MallWorld = lazy(() => import("./mall/MallWorld"));
+// The motel is lazily loaded the same way.
+const MotelWorld = lazy(() => import("./motel/MotelWorld"));
 
 // All worlds stay mounted; only the current one is visible (and so drawn and
 // lit). Fog, the camera's near plane and the acoustics are per world: the
@@ -55,18 +58,22 @@ const FOG: Record<WorldId, Fog> = {
   stockroom: new Fog(0x0d0c14, 18, 66),
   // Night air, blue-black, deepening down the length of the atrium.
   mall: new Fog(0x0a0c1a, 28, 120),
+  // A warm haze over the courtyard, thick enough to soften the mountains.
+  motel: new Fog(0xc9748a, 35, 230),
 };
 const CAMERA_NEAR: Record<WorldId, number> = {
   island: 1,
   cave: 0.05,
   stockroom: 0.05,
   mall: 0.05,
+  motel: 0.05,
 };
 const LEVELS: Record<WorldId, Level> = {
   island: ISLAND_LEVEL,
   cave: CAVE_LEVEL,
   stockroom: STOCKROOM_LEVEL,
   mall: MALL_LEVEL,
+  motel: MOTEL_LEVEL,
 };
 // Island: straight from the boombox. Cave: out of the TVs. Stockroom: over
 // the warehouse PA, into a big reverberant hall. Mall: muzak from the
@@ -76,6 +83,7 @@ const ACOUSTICS: Record<WorldId, Acoustics> = {
   cave: "tv",
   stockroom: "hall",
   mall: "mall",
+  motel: "court",
 };
 // Indoors the music's placement and falloff are handled by the Web Audio
 // graph (see musicStore), so the base level is simply full. (On the island,
@@ -96,12 +104,17 @@ export default function Scene() {
   const caveGroup = useRef<Group>(null);
   const stockroomGroup = useRef<Group>(null);
   const mallGroup = useRef<Group>(null);
+  const motelGroup = useRef<Group>(null);
   // Mount the mall once it's wanted: the player is at a door to it, on the
   // way there, or started there. It stays mounted after that.
   const [mallWanted, setMallWanted] = useState(false);
   const wantMall =
     world === "mall" || destination === "mall" || nearDoor === "mall";
   if (wantMall && !mallWanted) setMallWanted(true);
+  const [motelWanted, setMotelWanted] = useState(false);
+  const wantMotel =
+    world === "motel" || destination === "motel" || nearDoor === "motel";
+  if (wantMotel && !motelWanted) setMotelWanted(true);
   const [feed, setFeed] = useState<FeedTextures | null>(null);
   const onFeedTextures = useCallback((t: FeedTextures) => setFeed(t), []);
 
@@ -186,10 +199,17 @@ export default function Scene() {
           </Suspense>
         )}
       </group>
+      <group ref={motelGroup} visible={world === "motel"}>
+        {motelWanted && (
+          <Suspense fallback={null}>
+            <MotelWorld active={world === "motel" && phase !== "out"} />
+          </Suspense>
+        )}
+      </group>
       <IslandFeed
         enabled={WATCHES_TV.has(world) || WATCHES_TV.has(destination)}
         island={islandGroup}
-        others={[caveGroup, stockroomGroup, mallGroup]}
+        others={[caveGroup, stockroomGroup, mallGroup, motelGroup]}
         islandFog={FOG.island}
         onTextures={onFeedTextures}
       />

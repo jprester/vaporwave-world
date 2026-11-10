@@ -11,7 +11,7 @@ first: the island is the shadow play, and each door leads further back into
 the machinery that produces it. That's vaporwave's real subject: manufactured
 nostalgia, the consumer dream factory, paradise as stock footage.
 
-The worlds so far, in order of depth:
+The worlds so far, roughly in order of depth:
 
 1. **The island (Plato's Cove).** A tiled poolroom platform on an endless sea
    at a frozen golden-hour sunset. Doric columns, a waving statue on a
@@ -33,12 +33,18 @@ The worlds so far, in order of depth:
    shop still has its lights on: a travel agency selling holidays to the
    island. *The agora is where Socrates did his asking, the marketplace;
    here it's front of house, where the dream is sold.*
+5. **The Sunset Motel.** Behind a staff door in the cave's east wall: a
+   two-storey courtyard motel at permanent golden hour. The pool, the
+   diving board, the VACANCY sign, one lit room, one room lit by a
+   television, a maid's cart and a gate that lets you back into the cave.
+   *Where you stay while the golden hour is on loan.*
 
 The first three go further back, each less dressed up and more honest about
 the island being made. The mall goes the other way, out front, to where the
 island is packaged and sold, and it's the hub: every world opens onto it.
-Nothing so far has reached the real "outside". That's on purpose, see the
-open threads.
+The motel is where the transaction is spent: the golden hour on loan, the
+room you sleep in after the island. Nothing so far has reached the real
+"outside". That's on purpose, see the open threads.
 
 ## Map
 
@@ -49,6 +55,9 @@ a door back to each, so it's the hub:
 ```
             island ───────── cave ───────── stockroom
          (east edge)    (west wall)    (north wall, behind the suns)
+               │              │              │
+               │         sunset motel        │
+               │        (cave east wall)     │
                │              │              │
                └────────── the mall ─────────┘
                   (travel agency,  (hotel,      (service corridor,
@@ -62,6 +71,8 @@ a door back to each, so it's the hub:
 | cave | entrance | island | south wall, by the EXIT sign |
 | cave | STAFF ONLY | stockroom | north wall, right of the screens |
 | cave | mall entrance | mall | west wall, near the entrance |
+| cave | SUNSET MOTEL staff door | motel | east wall, midway along |
+| motel | gate | cave | east wall of the courtyard |
 | stockroom | FRONT OF HOUSE | cave | south wall, under the slogan |
 | stockroom | mall entrance | mall | north wall, behind the spare suns |
 | mall | Plato's Cove Holidays | island | concourse, west side, unit G04 |
@@ -124,12 +135,13 @@ a door back to each, so it's the hub:
   world, the way a player does: stands in front, faces it, checks
   `nearDoor` on every frame, travels with no argument and checks where it
   lands. Rerun it whenever a door, a collider or an arrival moves.
-- **Audio:** `musicStore.ts` has four acoustics: `open` (island), `tv`
+- **Audio:** `musicStore.ts` has five acoustics: `open` (island), `tv`
   (cave, panned out of the video wall), `hall` (stockroom: PA horns into a
-  synthetic 4 s concrete reverb) and `mall` (muzak: summed to mono, small
+  synthetic 4 s concrete reverb), `mall` (muzak: summed to mono, small
   ceiling speakers, into a longer, brighter 5.6 s atrium reverb, over the
-  room tone). Reverbs are `Space`s passed to `hallImpulse`. Add a mode
-  rather than special-casing one.
+  room tone) and `court` (the motel: a short, dry 2.6 s courtyard slap
+  with little high end). Reverbs are `Space`s passed to `hallImpulse`.
+  Add a mode rather than special-casing one.
 - **Plato TV** (`IslandFeed.tsx`) renders the island into a texture while any
   world in `WATCHES_TV` (Scene) is current or being travelled to (the
   cave, the stockroom, and the mall, for Television City's window). Hide
@@ -160,7 +172,7 @@ a door back to each, so it's the hub:
 - **Player:** radius 1.2, eye height 1.7. Keep walkways at least 2.6 wide.
   The door model is an arched double door, 1.9 m wide and 4 m tall.
 - **Debug:** `?qa=1` hides the UI and skips the compatibility gate;
-  `?world=cave|stockroom|mall` starts there. Hooks: `window.render_game_to_text`,
+  `?world=cave|stockroom|mall|motel` starts there. Hooks: `window.render_game_to_text`,
   `advanceTime`, `setCameraOrientation(yaw, pitch)`,
   `setPlayerPosition(x, z, y?)` (y is the floor to stand on), `travel(world?)`, `setFeedSegment(i)`,
   `qa_doors()` (the current world's doors) and `qa_renderInfo()` (draw
@@ -174,6 +186,13 @@ a door back to each, so it's the hub:
   more. When killing the dev server, don't use a `pkill` pattern that also
   matches your own shell command (`[v]ite`-style tricks don't help when the
   pattern text is in your own command line); kill it by PID.
+- **Flicker test:** `npm run flicker -- --preset stair` (or `--all`) loads a
+  viewpoint, captures a few frames while nudging the camera by 2 mm, and diffs
+  them with post-processing off (`?nopost=1`) and water/palms/neon frozen
+  (`?freeze=1`). `scripts/qa-flicker.mjs` writes a heatmap and prints the
+  changed and eroded-solid percentages; a z-fight is a solid cluster, ordinary
+  parallax is a thin edge. Presets are motel-specific; `--world`, `--x`, `--z`,
+  `--yaw` and `--pitch` work for any world.
 
 ## Log
 
@@ -346,3 +365,79 @@ for the TV shop); hidden, it costs the other worlds nothing.
 - Door #11 is still "NOT YET HUNG". The mall entrances aren't stock doors
   (they're the mall's, glass and bronze), so the stockroom's count stays
   honest: 11 doors, 3 out.
+
+### Round 3: the Sunset Motel
+
+**Added.** A fifth world, reached through a staff door in the cave's east
+wall. It is a 44 × 34 m courtyard motel at permanent golden hour, the kind
+of place the mall's Hotel & Conference Suites would put you up in if the
+conference had run long.
+
+- **The door.** A plain staff door in the cave's east wall, midway along,
+  with a teal plaque: SUNSET MOTEL · VACANCY. The same warm light leaks
+  under it as under the stockroom's door, which is the only clue that the
+  sun is on the other side.
+- **The courtyard.** The gate you arrive through is in the east wall,
+  between two pylons under a board: SUNSET MOTEL, VACANCY, and a small
+  plaque: GOLDEN HOUR PROVIDED BY PLATO'S COVE HOLIDAYS. The building is
+  two storeys, six bays, a balcony running the length of it with towels
+  over the rail, and an outside stair at the east end. The office is the
+  far west bay: counter, key rack, clock stopped at six, guest book, bell,
+  a lamp left on, and the Helios bust on the counter.
+- **The pool.** 14 × 8 m, empty of people, full of water that reflects the
+  sunset; a sun painted on the bottom, a diving board, a chrome ladder, a
+  ring left floating. The pool rules are on a post by the shallow end. The
+  water is fine. Please do not feed the sun.
+- **Rooms 1–11.** Ground floor 1–5, upper 6–11. One room is lit warm
+  (number 2), one is lit blue by a television (number 9), the rest are
+  dark. A DO NOT DISTURB hangs on 8. The keys are all in their slots.
+- **Around the courtyard.** Four loungers and two parasols, a plastic
+  table with two chairs and a boombox, three palms, the Venus statue on a
+  plinth by the pool, the maid's cart parked under the balcony, a vending
+  machine and an ice machine by the gate, a payphone with its cord, a
+  standing ashtray with one cigarette in it, and a sign by the pool.
+- **Look.** Everything the island has, one layer down and with a front
+  desk: pink stucco, teal doors and railings, chrome, cream deck paint,
+  a low sun in the west behind two ridges, stars already out at the top of
+  the sky, neon VACANCY and a neon border on the board. Fog is warm and
+  close, the bloom a little wider than the island's, the vignette a little
+  darker. The fade in is the colour of the deck at sunset.
+- **Sound.** A fifth acoustic, `court`: the music through the motel's
+  outdoor speaker, into a short 2.6 s slap off the building, dry and
+  closed-in, with the air handling gone. It is the quietest world; the
+  water is the loudest thing in it.
+
+**Why this one.** The island is the show, the cave the audience, the
+stockroom the props, the mall the box office. The motel is where the
+audience stays: the golden hour is on loan from the stockroom, sold by the
+travel agency, and provided by Plato's Cove Holidays. It is also the most
+directly vaporwave room left — the empty resort at dusk, the pool nobody
+swims in, the ice machine humming — and it reuses the island's own
+vocabulary (Venus, Helios, the boombox, the sun) as furniture rather than
+merchandise. After the mall's dark blue night, a world that is all warm
+low sun made a good fifth room.
+
+**Plumbing changed.** A new lazy world (`notReady` / `markWorldReady`),
+a fifth acoustic (`court`), and one new door each way in `worldStore` and
+`levels.ts`. All textures are procedural canvas (`motel/textures.ts`); no
+new binary assets. The water is a custom shader: sky reflection, sun
+glitter, a little sparkle, no planar reflection pass. The motel is 411
+draw calls and 36k triangles in the courtyard, and hidden it costs the
+other worlds nothing. Its group is in `IslandFeed`'s `others`, though it
+does not watch Plato TV. The door test covers cave → motel → cave.
+
+**Open threads for future rounds.**
+
+- **The other guest.** The maid's cart is full, the ice machine is on, and
+  the payphone has a dial tone. Whoever is back in five minutes is not
+  here either.
+- **The golden hour.** The plaque says it is provided by Plato's Cove
+  Holidays. The agency's poster says guaranteed, subject to availability.
+  The stockroom has it on loan, indefinitely. The motel is where those
+  three sentences meet, and none of them explains who is paying.
+- **The rooms upstairs.** Only one is lit. The rest have their keys in the
+  rack, their curtains drawn, and their televisions off. They could be
+  empty, or the motel could be full; there is no register to check.
+- **The road.** There is no road to the motel, only the gate back into the
+  cave. The hills outside the fence are silhouettes and nothing else. Like
+  the loading bay and the mall's car park, the way out is best kept shut.

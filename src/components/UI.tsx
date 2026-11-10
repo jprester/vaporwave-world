@@ -261,6 +261,8 @@ const FADE_BACKGROUND: Record<WorldId, string> = {
   cave: "#07040a",
   stockroom: "#090b10",
   mall: "#0c1030",
+  // The motel fades through its own sunset.
+  motel: "radial-gradient(circle at 50% 55%, #fff6d8 0%, #ffd2a1 45%, #ff8fb0 100%)",
 };
 
 function TransitionOverlay({

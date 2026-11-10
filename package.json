@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "shot": "node scripts/shot.mjs"
+    "shot": "node scripts/shot.mjs",
+    "flicker": "node scripts/qa-flicker.mjs"
   },
   "keywords": [],
   "author": "Janko Prester",

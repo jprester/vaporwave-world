@@ -6,7 +6,7 @@
 // destination places the player by the door they came through (see the
 // per-origin arrivals in levels.ts).
 
-export const WORLD_IDS = ["island", "cave", "stockroom", "mall"] as const;
+export const WORLD_IDS = ["island", "cave", "stockroom", "mall", "motel"] as const;
 export type WorldId = (typeof WORLD_IDS)[number];
 
 // idle → out (screen fades to the destination's color) → world swaps →
@@ -22,9 +22,10 @@ export const FADE_IN_MS = 1400;
 // has a door out to each.
 const DOORS: Record<WorldId, WorldId[]> = {
   island: ["cave", "mall"],
-  cave: ["island", "stockroom", "mall"],
+  cave: ["island", "stockroom", "mall", "motel"],
   stockroom: ["cave", "mall"],
   mall: ["island", "cave", "stockroom"],
+  motel: ["cave"],
 };
 
 // The world you'd have come from when starting somewhere via ?world=.
@@ -33,11 +34,12 @@ const DEFAULT_ORIGIN: Record<WorldId, WorldId | null> = {
   cave: "island",
   stockroom: "cave",
   mall: "island",
+  motel: "cave",
 };
 
 // Worlds whose assets load lazily, the first time they're needed. The fade
 // holds on its color until the destination reports it's ready.
-const notReady = new Set<WorldId>(["mall"]);
+const notReady = new Set<WorldId>(["mall", "motel"]);
 const READY_POLL_MS = 100;
 
 export function markWorldReady(world: WorldId) {
