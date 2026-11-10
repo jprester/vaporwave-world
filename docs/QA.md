@@ -10,7 +10,7 @@ The rule: **assert cheaply, render rarely, put the expensive render in CI.**
 
 | Tier | Command | What it checks | Cost |
 | --- | --- | --- | --- |
-| 0 | `npm run check` | Typecheck + pure geometry invariants over `levels.ts`: reciprocal doors, arrivals match their doors, spawn/arrival on the floor, floor patches inside bounds, colliders finite, every world reachable | ~5 s, no WebGL |
+| 0 | `npm run check` | Typecheck + pure geometry invariants over `levels.ts` and the facade depth contract: reciprocal doors, arrivals match their doors, spawn/arrival on the floor, floor patches inside bounds, colliders finite, every world reachable, depth layers strictly ordered | ~5 s, no WebGL |
 | 1 | `npm run smoke -- --world motel` | Loads one world, waits for `ready`/`idle`, asserts spawn on the floor, grounded, no door prompt, no page errors; writes one 640×360 shot | ~10–25 s |
 | 2 | `npm run doors -- --only motel` | Walks every door the way a player does; checks the arrival side, floor, facing and prompt | ~20 s |
 | 2 | `npm run walk -- --world motel` | Stands on every floor patch (stair, balcony, gallery), every arrival, walks from spawn, walks at a bound, walks into the biggest collider | ~15–35 s |

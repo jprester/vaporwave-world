@@ -26,6 +26,7 @@ import {
 import DoorTrigger from "../DoorTrigger";
 import { markWorldReady } from "../worldStore";
 import { MODEL, useFittedModel, type FittedModel } from "../stockroom/models";
+import { DepthMesh, WindowPrefab } from "../kit/prefab";
 import {
   makeBarkTexture,
   makeClockTexture,
@@ -649,31 +650,12 @@ function RoomFront({
 
   return (
     <group>
-      <group position={[winX, y + C.WINDOW_SILL + C.WINDOW_H / 2, z]}>
-        <mesh position={[0, 0, 0]} material={curtain}>
-          <planeGeometry args={[C.WINDOW_W - 0.06, C.WINDOW_H - 0.06]} />
-        </mesh>
-        <mesh position={[0, 0, 0.014]} material={a.mats.glass}>
-          <planeGeometry args={[C.WINDOW_W, C.WINDOW_H]} />
-        </mesh>
-        {/* Frame. */}
-        <mesh position={[0, C.WINDOW_H / 2 + 0.04, 0.03]} material={a.mats.frame}>
-          <boxGeometry args={[C.WINDOW_W + 0.14, 0.08, 0.05]} />
-        </mesh>
-        <mesh position={[0, -C.WINDOW_H / 2 - 0.04, 0.03]} material={a.mats.frame}>
-          <boxGeometry args={[C.WINDOW_W + 0.14, 0.08, 0.05]} />
-        </mesh>
-        {[-1, 1].map((s) => (
-          <mesh
-            key={s}
-            position={[(s * (C.WINDOW_W + 0.04)) / 2, 0, 0.03]}
-            material={a.mats.frame}>
-            <boxGeometry args={[0.08, C.WINDOW_H + 0.16, 0.05]} />
-          </mesh>
-        ))}
-        <mesh position={[0, 0, 0.032]} material={a.mats.frame}>
-          <boxGeometry args={[0.035, C.WINDOW_H, 0.04]} />
-        </mesh>
+      <group position={[winX, y + C.WINDOW_SILL + C.WINDOW_H / 2, C.MOTEL_FRONT_Z]}>
+        <WindowPrefab
+          width={C.WINDOW_W}
+          height={C.WINDOW_H}
+          materials={{ glass: a.mats.glass, frame: a.mats.frame, curtain, sill: a.mats.cream }}
+        />
       </group>
 
       <group position={[doorX, y, z]}>
@@ -765,30 +747,30 @@ function Office({ a }: { a: Assets }) {
   return (
     <group name="office">
       {/* The glass front, its piers and the sign. */}
-      <mesh position={[C.OFFICE_WINDOW_X, 1.8, C.MOTEL_FRONT_Z + 0.03]} material={a.mats.glass}>
+      <DepthMesh layer="GLASS" position={[C.OFFICE_WINDOW_X, 1.8, C.MOTEL_FRONT_Z]} material={a.mats.glass}>
         <planeGeometry args={[C.OFFICE_WINDOW_W, 1.8]} />
-      </mesh>
-      <mesh position={[C.OFFICE_DOOR_X, 1.1, C.MOTEL_FRONT_Z + 0.03]} material={a.mats.glass}>
+      </DepthMesh>
+      <DepthMesh layer="GLASS" position={[C.OFFICE_DOOR_X, 1.1, C.MOTEL_FRONT_Z]} material={a.mats.glass}>
         <planeGeometry args={[1, 2.2]} />
-      </mesh>
-      <mesh position={[C.OFFICE_DOOR_X - 0.53, 1.1, C.MOTEL_FRONT_Z + 0.045]} material={a.mats.frame}>
+      </DepthMesh>
+      <DepthMesh layer="FRAME" position={[C.OFFICE_DOOR_X - 0.53, 1.1, C.MOTEL_FRONT_Z]} material={a.mats.frame}>
         <boxGeometry args={[0.08, 2.3, 0.06]} />
-      </mesh>
-      <mesh position={[C.OFFICE_DOOR_X + 0.53, 1.1, C.MOTEL_FRONT_Z + 0.045]} material={a.mats.frame}>
+      </DepthMesh>
+      <DepthMesh layer="FRAME" position={[C.OFFICE_DOOR_X + 0.53, 1.1, C.MOTEL_FRONT_Z]} material={a.mats.frame}>
         <boxGeometry args={[0.08, 2.3, 0.06]} />
-      </mesh>
-      <mesh position={[C.OFFICE_DOOR_X, 2.24, C.MOTEL_FRONT_Z + 0.045]} material={a.mats.frame}>
+      </DepthMesh>
+      <DepthMesh layer="FRAME" position={[C.OFFICE_DOOR_X, 2.24, C.MOTEL_FRONT_Z]} material={a.mats.frame}>
         <boxGeometry args={[1.14, 0.08, 0.06]} />
-      </mesh>
+      </DepthMesh>
       <mesh position={[C.OFFICE_DOOR_X, 2.46, C.MOTEL_FRONT_Z - 0.05]} material={a.mats.stuccoFlat}>
         <boxGeometry args={[1.02, 0.48, 0.12]} />
       </mesh>
       <mesh position={[C.OFFICE_DOOR_X, 1.02, C.MOTEL_FRONT_Z + 0.06]} material={a.mats.chrome}>
         <sphereGeometry args={[0.04, 10, 8]} />
       </mesh>
-      <mesh position={[C.OFFICE_WINDOW_X + 1.5, 1.05, C.MOTEL_FRONT_Z + 0.02]} material={a.mats.frame}>
+      <DepthMesh layer="FRAME" position={[C.OFFICE_WINDOW_X + 1.5, 1.05, C.MOTEL_FRONT_Z]} material={a.mats.frame}>
         <boxGeometry args={[0.07, 2.1, 0.06]} />
-      </mesh>
+      </DepthMesh>
       <mesh position={[C.OFFICE_WINDOW_X, 1.8, C.MOTEL_FRONT_Z + 0.03]} material={a.mats.frame}>
         <boxGeometry args={[0.04, 1.8, 0.04]} />
       </mesh>

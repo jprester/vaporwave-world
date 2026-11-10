@@ -7,6 +7,7 @@
 // Run via `npm run check` (which also typechecks). The loader bundles this
 // file with esbuild so Node can import the TypeScript level data directly.
 
+import { LAYERS, LAYER_ORDER, MIN_LAYER_GAP, depthContractIsValid } from "../src/components/kit/depth";
 import { LEVELS, patchHeight, type Level, type SpawnPoint } from "../src/components/levels";
 import { WORLD_IDS, type WorldId } from "../src/components/worldStore";
 
@@ -31,6 +32,19 @@ function check(condition: boolean, ok: string, bad: string) {
 
 const n = (v: number) => Number(v.toFixed(2));
 const near = (a: number, b: number, eps = 0.051) => Math.abs(a - b) <= eps;
+
+// The facade attachments must never share a depth. This is the cheap guard
+// against the window/stair/office class of z-fighting.
+check(depthContractIsValid(), "depth contract is strictly ordered", "depth contract has a gap below the minimum");
+for (let i = 1; i < LAYER_ORDER.length; i++) {
+  const prev = LAYERS[LAYER_ORDER[i - 1]];
+  const next = LAYERS[LAYER_ORDER[i]];
+  check(
+    next - prev >= MIN_LAYER_GAP,
+    `depth ${LAYER_ORDER[i - 1]} → ${LAYER_ORDER[i]}: ${n(next - prev)} m`,
+    `depth gap ${LAYER_ORDER[i - 1]} → ${LAYER_ORDER[i]} is ${n(next - prev)} m (need ${MIN_LAYER_GAP})`,
+  );
+}
 
 function floorAt(level: Level, x: number, z: number, feetY: number) {
   let y = level.floorY;

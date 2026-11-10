@@ -130,6 +130,13 @@ a door back to each, so it's the hub:
   origin world, so you arrive in front of the door you came through
   (`inFrontOf` derives an arrival from a door, upstairs or down). The fade
   color per destination is `FADE_BACKGROUND` in `UI.tsx`.
+- **Facade depth contract.** Anything attached to a wall goes through
+  `src/components/kit/depth.ts`: `WALL` → `CURTAIN` → `GLASS` → `LEAF` →
+  `FRAME` → `TRIM` → `SIGN`, with at least 6 mm between layers. Use
+  `DepthMesh`/`WindowPrefab` from `src/components/kit/prefab.tsx` instead of
+  hand-placing a z offset; the Tier 0 check fails if the order or the gaps
+  drift. This is the structural fix for the window-curtain, stair-stringer
+  and office-joint z-fighting.
 - **QA tiers.** `npm run check` typechecks and checks the level invariants
   (reciprocal doors, arrivals straight out of the right door, floor heights,
   spawns, collider boxes) with no WebGL. `npm run smoke -- --world motel`
