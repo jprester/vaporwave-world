@@ -8,19 +8,21 @@ import {
   useSyncExternalStore,
 } from "react";
 import { useThree } from "@react-three/fiber";
-import { Fog, Group, PerspectiveCamera } from "three";
+import {
+  Fog,
+  Group,
+  Mesh,
+  PerspectiveCamera,
+  Raycaster,
+  Vector3,
+  type Material,
+  type Object3D,
+} from "three";
 import Effects from "./Effects";
 import CaveWorld from "./cave/CaveWorld";
 import IslandFeed, { type FeedTextures } from "./IslandFeed";
 import IslandWorld from "./island/IslandWorld";
-import {
-  CAVE_LEVEL,
-  ISLAND_LEVEL,
-  MALL_LEVEL,
-  MOTEL_LEVEL,
-  STOCKROOM_LEVEL,
-  type Level,
-} from "./levels";
+import { LEVELS } from "./levels";
 import {
   setAcoustics,
   setDistanceVolume,
@@ -67,13 +69,6 @@ const CAMERA_NEAR: Record<WorldId, number> = {
   stockroom: 0.05,
   mall: 0.05,
   motel: 0.05,
-};
-const LEVELS: Record<WorldId, Level> = {
-  island: ISLAND_LEVEL,
-  cave: CAVE_LEVEL,
-  stockroom: STOCKROOM_LEVEL,
-  mall: MALL_LEVEL,
-  motel: MOTEL_LEVEL,
 };
 // Island: straight from the boombox. Cave: out of the TVs. Stockroom: over
 // the warehouse PA, into a big reverberant hall. Mall: muzak from the
@@ -156,6 +151,74 @@ export default function Scene() {
 
     window.travel = travel;
     window.qa_doors = () => JSON.stringify(LEVELS[getSnapshot().world].doors);
+    // QA: the current level, for the walk/probe test. Same data the player
+    // controller uses, so the test can compute expected floor heights.
+    window.qa_level = () => JSON.stringify(LEVELS[getSnapshot().world]);
+    // QA: a bounded list of visible meshes, their world positions, bounds and
+    // materials. Use when a screenshot is ambiguous; not on the happy path.
+    window.qa_scene = () => {
+      const objects: Array<Record<string, unknown>> = [];
+      const p = new Vector3();
+      const materialInfo = (m: Material | Material[]) => {
+        const list = Array.isArray(m) ? m : [m];
+        return list.map((x) => ({
+          type: x.type,
+          name: x.name || undefined,
+          color: (x as { color?: { getHexString(): string } }).color?.getHexString(),
+          transparent: x.transparent,
+          opacity: x.opacity,
+        }));
+      };
+      scene.traverse((obj) => {
+        if (objects.length >= 300) return;
+        if (!obj.visible) return;
+        for (let parent = obj.parent; parent; parent = parent.parent) {
+          if (!parent.visible) return;
+        }
+        const mesh = obj as Mesh;
+        if (!mesh.isMesh || !mesh.geometry) return;
+        mesh.geometry.computeBoundingBox();
+        const size = mesh.geometry.boundingBox?.getSize(new Vector3());
+        mesh.getWorldPosition(p);
+        objects.push({
+          name: mesh.name || undefined,
+          position: [p.x, p.y, p.z].map((n) => Number(n.toFixed(2))),
+          size: size
+            ? [size.x, size.y, size.z].map((n) => Number(n.toFixed(2)))
+            : undefined,
+          castShadow: mesh.castShadow,
+          receiveShadow: mesh.receiveShadow,
+          material: materialInfo(mesh.material),
+        });
+      });
+      return JSON.stringify({ world: getSnapshot().world, meshes: objects.length, objects });
+    };
+    // QA: raycast from a point in a direction. Returns the first few hits with
+    // distance, point, object name and material, for checking what is really
+    // in front of the player.
+    window.qa_raycast = (x, y, z, dx, dy, dz, far = 50) => {
+      const ray = new Raycaster(
+        new Vector3(x, y, z),
+        new Vector3(dx, dy, dz).normalize(),
+        0.001,
+        far,
+      );
+      const hits = ray.intersectObjects(scene.children, true).filter((hit) => {
+        let obj: Object3D | null = hit.object;
+        while (obj) {
+          if (!obj.visible) return false;
+          obj = obj.parent;
+        }
+        return true;
+      });
+      return JSON.stringify(
+        hits.slice(0, 8).map((hit) => ({
+          distance: Number(hit.distance.toFixed(3)),
+          point: hit.point.toArray().map((n) => Number(n.toFixed(2))),
+          name: hit.object.name || undefined,
+        })),
+      );
+    };
     // Draw calls and triangles over one whole frame (every composer pass),
     // plus the GPU memory counts.
     window.qa_renderInfo = async () => {

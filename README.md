@@ -120,11 +120,19 @@ npm run shot -- --out screenshots/sun.png --pitch 0.05 # capture a frame
 
 Appending `?qa=1` to the URL hides the Leva panel and HUD for clean captures, and `?world=cave`, `?world=stockroom`, `?world=mall` or `?world=motel` starts in that world. In QA mode, `window.travel("cave")` (and so on) goes through a door from the console. See `scripts/shot.mjs` for all flags (`--yaw`, `--pitch`, `--x`/`--z`, `--frames`, etc.). If Playwright's bundled browser isn't installed, point `CHROMIUM_PATH` at a Chromium binary.
 
-To check that every door works the way a player uses it (stand at it, look at it, open it, arrive in front of the right door on the other side), run the door test against the dev server:
+The thin QA layer is designed to stay cheap: assertions before screenshots,
+one world at a time, and no GPU-heavy sweep on every edit. See [docs/QA.md](docs/QA.md) for the tiers and the reasoning.
 
 ```bash
-CHROMIUM_PATH=/path/to/chrome node scripts/door-test.mjs
+npm run check                          # typecheck + level geometry invariants, no WebGL
+npm run smoke -- --world motel         # one 640x360 frame, spawn/floor/errors
+npm run doors -- --only motel          # every door into and out of the motel
+npm run walk -- --world motel          # floor patches, arrivals, bounds, collider
 ```
+
+`npm run check` needs no dev server. The browser tiers need `npm run dev`
+(port 3000; use `--url` otherwise). If Playwright's bundled browser isn't
+installed, point `CHROMIUM_PATH` at a Chromium binary.
 
 Surfaces that shimmer or fight for depth are hard to catch in a still. The flicker detector takes a few frames while nudging the camera by 2 mm, freezes the water/palms/neon and disables post-processing, then diffs them. Static geometry cancels out; z-fighting and texture crawl show up as a red cluster in a heatmap, while normal parallax only leaves thin edge outlines.
 

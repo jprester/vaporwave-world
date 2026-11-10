@@ -38,6 +38,13 @@ export const PEDESTAL_DEPTH = 4.2;
 export const PEDESTAL_CENTER_X = -20;
 export const PEDESTAL_CENTER_Z = -2;
 
+// The boombox table arrangement on the east side of the platform. Shared by
+// the island meshes (MusicPlayer.tsx) and the player collider (levels.ts).
+export const BOOMBOX_CENTER_X = 15;
+export const BOOMBOX_CENTER_Z = 18;
+export const BOOMBOX_TABLE_WIDTH = 3.4;
+export const BOOMBOX_TABLE_DEPTH = 2.4;
+
 export const DOOR_X = 6;
 export const DOOR_Z = -FLOOR_DEPTH / 2 + 0.5;
 

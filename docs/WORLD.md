@@ -130,6 +130,12 @@ a door back to each, so it's the hub:
   origin world, so you arrive in front of the door you came through
   (`inFrontOf` derives an arrival from a door, upstairs or down). The fade
   color per destination is `FADE_BACKGROUND` in `UI.tsx`.
+- **QA tiers.** `npm run check` typechecks and checks the level invariants
+  (reciprocal doors, arrivals straight out of the right door, floor heights,
+  spawns, collider boxes) with no WebGL. `npm run smoke -- --world motel`
+  loads one world at 640x360 and asserts spawn/floor/errors; `npm run walk --
+  --world motel` stands on every floor patch and walks into a wall. See
+  `docs/QA.md`; keep the expensive sweep for CI or on demand.
 - **Door test.** `node scripts/door-test.mjs` (with the dev server running
   and `CHROMIUM_PATH` set) walks every door, after every route into its
   world, the way a player does: stands in front, faces it, checks

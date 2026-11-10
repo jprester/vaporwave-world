@@ -3,8 +3,6 @@ import {
   BOOMBOX_CENTER_Z,
   BOOMBOX_TABLE_DEPTH,
   BOOMBOX_TABLE_WIDTH,
-} from "./MusicPlayer";
-import {
   COLUMN_HALF,
   COLUMN_POSITIONS,
   DOOR_X,
@@ -332,4 +330,15 @@ export const MOTEL_LEVEL: Level = {
     cave: inFrontOf(door(MOTEL_DOORS, "cave"), 3.5),
   },
   doors: MOTEL_DOORS,
+};
+
+// The one place that maps a world id to its level. Scene.tsx and the QA
+// scripts both read this, so a new world cannot be added to one and forgotten
+// in the other.
+export const LEVELS: Record<WorldId, Level> = {
+  island: ISLAND_LEVEL,
+  cave: CAVE_LEVEL,
+  stockroom: STOCKROOM_LEVEL,
+  mall: MALL_LEVEL,
+  motel: MOTEL_LEVEL,
 };
