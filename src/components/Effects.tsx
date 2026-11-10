@@ -4,6 +4,7 @@ import {
   ChromaticAberration,
   EffectComposer,
   Noise,
+  SMAA,
   Vignette,
 } from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
@@ -18,6 +19,8 @@ import type { WorldId } from "./worldStore";
 // instead; keep a world's heavy post libraries in its own lazy chunk.
 const GRADE: Partial<Record<WorldId, { bloom: number; radius: number; vignette: number }>> = {
   mall: { bloom: 0.75, radius: 0.55, vignette: 0.5 },
+  // The courtyard is brightest of all; let the neon and the low sun flare.
+  motel: { bloom: 0.9, radius: 0.62, vignette: 0.42 },
 };
 
 export default function Effects({ world }: { world: WorldId }) {
@@ -39,6 +42,10 @@ export default function Effects({ world }: { world: WorldId }) {
   );
 
   const grade = GRADE[world];
+  // QA escape hatch: ?nopost=1 renders without bloom/noise so screenshot
+  // tooling can diff raw geometry without film grain moving every pixel.
+  const noPost = new URLSearchParams(window.location.search).has("nopost");
+  if (noPost) return null;
 
   return (
     <EffectComposer enableNormalPass={false} multisampling={4}>
@@ -63,6 +70,9 @@ export default function Effects({ world }: { world: WorldId }) {
         blendFunction={BlendFunction.OVERLAY}
         opacity={effects.noiseOpacity}
       />
+      {/* SMAA cleans up the geometry edges MSAA leaves behind: thin railings,
+          window frames and the neon border crawl while walking without it. */}
+      <SMAA />
     </EffectComposer>
   );
 }

@@ -65,17 +65,22 @@ let autoStartArmed = false;
 // nowhere in particular as a bright, long reverb, over the air handling.
 // If Web Audio is unavailable, volume falls back to the elements' own volume
 // and there are no effects.
-export type Acoustics = "open" | "tv" | "hall" | "mall";
+export type Acoustics = "open" | "tv" | "hall" | "mall" | "court";
 const TV_LEVEL = 1.1;
 const PA_DRY_LEVEL = 0.35;
 const PA_WET_LEVEL = 1.25;
 const MALL_DRY_LEVEL = 0.3;
 const MALL_WET_LEVEL = 1.1;
+// The courtyard: a small speaker by the office, most of it escaping into the
+// open air, with a short slapback off the motel's front wall.
+const COURT_DRY_LEVEL = 0.55;
+const COURT_WET_LEVEL = 0.6;
 const AMBIENCE_LEVEL: Record<Acoustics, number> = {
   open: 0,
   tv: 1,
   hall: 0.8,
   mall: 0.45,
+  court: 0.3,
 };
 let acoustics: Acoustics = "open";
 let audioCtx: AudioContext | null = null;
@@ -88,6 +93,8 @@ let paDry: GainNode | null = null;
 let paWet: GainNode | null = null;
 let mallDry: GainNode | null = null;
 let mallWet: GainNode | null = null;
+let courtDry: GainNode | null = null;
+let courtWet: GainNode | null = null;
 let ambienceGain: GainNode | null = null;
 let master: GainNode | null = null;
 
@@ -164,6 +171,19 @@ const CONCRETE_HALL: Space = {
     [41, 0.35],
     [67, 0.3],
     [96, 0.22],
+  ],
+};
+// A courtyard is a strange room: no ceiling, one long wall. Short, bright,
+// and it dies away fast.
+const COURT: Space = {
+  seconds: 2.6,
+  brightness: 0.75,
+  dulling: 0.55,
+  decay: 3.4,
+  reflections: [
+    [14, 0.45],
+    [29, 0.3],
+    [52, 0.2],
   ],
 };
 const ATRIUM: Space = {
@@ -272,6 +292,22 @@ function ensureGraph() {
     mallLow.connect(mallDry).connect(master);
     mallLow.connect(atrium).connect(mallWet).connect(master);
 
+    // Motel courtyard: a speaker by the office, band-limited and open.
+    const courtHigh = ctx.createBiquadFilter();
+    courtHigh.type = "highpass";
+    courtHigh.frequency.value = 240;
+    const courtLow = ctx.createBiquadFilter();
+    courtLow.type = "lowpass";
+    courtLow.frequency.value = 5600;
+    courtLow.Q.value = 0.9;
+    const courtyard = ctx.createConvolver();
+    courtyard.buffer = hallImpulse(ctx, COURT);
+    courtDry = ctx.createGain();
+    courtWet = ctx.createGain();
+    musicGain.connect(courtHigh).connect(courtLow);
+    courtLow.connect(courtDry).connect(master);
+    courtLow.connect(courtyard).connect(courtWet).connect(master);
+
     musicGain.connect(directGain).connect(master);
     musicGain
       .connect(tvHigh)
@@ -307,12 +343,15 @@ function applyAcoustics(immediate = false) {
     !paDry ||
     !paWet ||
     !mallDry ||
-    !mallWet
+    !mallWet ||
+    !courtDry ||
+    !courtWet
   )
     return;
   const tv = acoustics === "tv";
   const hall = acoustics === "hall";
   const mall = acoustics === "mall";
+  const court = acoustics === "court";
   const targets: [AudioParam, number][] = [
     [directGain.gain, acoustics === "open" ? 1 : 0],
     [tvGain.gain, tv ? TV_LEVEL : 0],
@@ -320,6 +359,8 @@ function applyAcoustics(immediate = false) {
     [paWet.gain, hall ? PA_WET_LEVEL : 0],
     [mallDry.gain, mall ? MALL_DRY_LEVEL : 0],
     [mallWet.gain, mall ? MALL_WET_LEVEL : 0],
+    [courtDry.gain, court ? COURT_DRY_LEVEL : 0],
+    [courtWet.gain, court ? COURT_WET_LEVEL : 0],
     [ambienceGain.gain, AMBIENCE_LEVEL[acoustics]],
   ];
   const now = audioCtx.currentTime;

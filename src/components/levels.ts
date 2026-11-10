@@ -26,6 +26,7 @@ import {
 import * as CAVE from "./cave/constants";
 import * as STOCK from "./stockroom/constants";
 import * as MALL from "./mall/constants";
+import * as MOTEL from "./motel/constants";
 import type { WorldId } from "./worldStore";
 
 // A level is everything the player controller needs to walk a world: the
@@ -135,6 +136,12 @@ const CAVE_DOORS: DoorSpot[] = [
     normal: [0, 1],
   },
   { to: "mall", x: CAVE.MALL_DOOR_X, z: CAVE.MALL_DOOR_Z, normal: [1, 0] },
+  {
+    to: "motel",
+    x: CAVE.MOTEL_DOOR_X,
+    z: CAVE.MOTEL_DOOR_Z,
+    normal: [-1, 0],
+  },
 ];
 const STOCKROOM_DOORS: DoorSpot[] = [
   { to: "cave", x: STOCK.DOOR_X, z: STOCK.DOOR_Z, normal: [0, -1] },
@@ -250,6 +257,7 @@ export const CAVE_LEVEL: Level = {
       ...inFrontOf(door(CAVE_DOORS, "mall"), 3),
       yaw: -Math.PI / 2 + 0.5,
     },
+    motel: inFrontOf(door(CAVE_DOORS, "motel"), 3),
   },
   doors: CAVE_DOORS,
 };
@@ -303,4 +311,25 @@ export const MALL_LEVEL: Level = {
     stockroom: inFrontOf(door(MALL_DOORS, "stockroom"), 3.5),
   },
   doors: MALL_DOORS,
+};
+
+// The motel: a courtyard at permanent golden hour, with a balcony and an
+// outside stair up to it. The balcony and the stair are floor patches.
+const MOTEL_DOORS: DoorSpot[] = MOTEL.DOORS;
+
+export const MOTEL_LEVEL: Level = {
+  floorY: 0,
+  floors: MOTEL.FLOORS,
+  bounds: {
+    minX: -MOTEL.HALF_W,
+    maxX: MOTEL.HALF_W,
+    minZ: -MOTEL.HALF_L,
+    maxZ: MOTEL.HALF_L,
+  },
+  colliders: [...MOTEL.COLLIDERS, ...MOTEL_DOORS.map(doorFootprint)],
+  spawn: { x: 0, z: 12, yaw: 0 },
+  arrivals: {
+    cave: inFrontOf(door(MOTEL_DOORS, "cave"), 3.5),
+  },
+  doors: MOTEL_DOORS,
 };

@@ -38,6 +38,8 @@ import {
   CRT_W,
   MALL_DOOR_X,
   MALL_DOOR_Z,
+  MOTEL_DOOR_X,
+  MOTEL_DOOR_Z,
   HALF_L,
   HALF_W,
   STAFF_DOOR_X,
@@ -97,6 +99,7 @@ export default function CaveWorld({ active, feed }: Props) {
       <CaveDoor />
       <ExitSign />
       <StaffDoor />
+      <MotelDoor />
       <TvSpeaker active={active} />
       <DoorTrigger
         to="stockroom"
@@ -111,6 +114,13 @@ export default function CaveWorld({ active, feed }: Props) {
         x={MALL_DOOR_X}
         z={MALL_DOOR_Z}
         normal={[1, 0]}
+        active={active}
+      />
+      <DoorTrigger
+        to="motel"
+        x={MOTEL_DOOR_X}
+        z={MOTEL_DOOR_Z}
+        normal={[-1, 0]}
         active={active}
       />
       <DoorTrigger
@@ -693,6 +703,117 @@ function StaffDoor() {
         decay={2}
       />
     </group>
+  );
+}
+
+// The motel door in the east wall. Unlike everything else in the cave, the
+// light under this one is the colour of late afternoon.
+function MotelDoor() {
+  const { scene } = useGLTF("/models/door/door.glb");
+  const door = useMemo(() => scene.clone(true), [scene]);
+  const { plaque, spill, gap } = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 320;
+    canvas.height = 140;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#173d43";
+    ctx.fillRect(0, 0, 320, 140);
+    ctx.strokeStyle = "#e8d6b4";
+    ctx.lineWidth = 5;
+    ctx.strokeRect(8, 8, 304, 124);
+    ctx.fillStyle = "#f4e3c3";
+    ctx.font = "bold 40px Arial, Helvetica, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("SUNSET MOTEL", 160, 58);
+    ctx.fillStyle = "#ff8fae";
+    ctx.font = "bold 25px Arial, Helvetica, sans-serif";
+    ctx.fillText("VACANCY", 160, 103);
+    const map = new CanvasTexture(canvas);
+    map.colorSpace = SRGBColorSpace;
+    const plaque = new MeshStandardMaterial({
+      map,
+      roughness: 0.45,
+      emissiveMap: map,
+      emissive: new Color(0.55, 0.42, 0.3),
+      emissiveIntensity: 0.7,
+    });
+
+    const g = document.createElement("canvas");
+    g.width = 128;
+    g.height = 64;
+    const gctx = g.getContext("2d")!;
+    const grad = gctx.createLinearGradient(0, 0, 0, 64);
+    grad.addColorStop(0, "rgba(255,255,255,1)");
+    grad.addColorStop(0.25, "rgba(255,255,255,0.35)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    gctx.fillStyle = grad;
+    gctx.fillRect(0, 0, 128, 64);
+    gctx.globalCompositeOperation = "destination-in";
+    const side = gctx.createLinearGradient(0, 0, 128, 0);
+    side.addColorStop(0, "rgba(0,0,0,0)");
+    side.addColorStop(0.2, "rgba(0,0,0,1)");
+    side.addColorStop(0.8, "rgba(0,0,0,1)");
+    side.addColorStop(1, "rgba(0,0,0,0)");
+    gctx.fillStyle = side;
+    gctx.fillRect(0, 0, 128, 64);
+    const spillMap = new CanvasTexture(g);
+    const spill = new MeshBasicMaterial({
+      map: spillMap,
+      color: new Color(2.2, 1.5, 1.0),
+      transparent: true,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const gap = new MeshBasicMaterial({
+      color: new Color(2.8, 1.95, 1.25),
+      toneMapped: false,
+    });
+    return { plaque, spill, gap };
+  }, []);
+  useEffect(
+    () => () => {
+      plaque.map?.dispose();
+      plaque.dispose();
+      spill.map?.dispose();
+      spill.dispose();
+      gap.dispose();
+    },
+    [plaque, spill, gap],
+  );
+
+  return (
+    <>
+      <group
+        position={[MOTEL_DOOR_X, 0, MOTEL_DOOR_Z]}
+        rotation={[0, -Math.PI / 2, 0]}>
+        <primitive name="motel-door" object={door} />
+        {/* The warm gap under the door, and its fan of light. */}
+        <mesh position={[0.04, 0.012, 0.31]} material={gap}>
+          <planeGeometry args={[1.6, 0.024]} />
+        </mesh>
+        <mesh
+          position={[0.04, 0.004, 0.95]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          material={spill}>
+          <planeGeometry args={[2.2, 1.3]} />
+        </mesh>
+        <pointLight
+          position={[0.04, 0.15, 0.7]}
+          color="#ffab74"
+          intensity={2.6}
+          distance={4}
+          decay={2}
+        />
+      </group>
+
+      {/* The plaque is on the wall beside the door, not on the door. */}
+      <group position={[HALF_W - 0.015, 0, MOTEL_DOOR_Z + 1.46]} rotation={[0, -Math.PI / 2, 0]}>
+        <mesh position={[0, 1.78, 0.01]} material={plaque}>
+          <planeGeometry args={[0.78, 0.34]} />
+        </mesh>
+      </group>
+    </>
   );
 }
 

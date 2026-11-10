@@ -49,3 +49,8 @@ export const CART_H = 1.05;
 // (+x). It leads to the mall.
 export const MALL_DOOR_X = -HALF_W + 0.35;
 export const MALL_DOOR_Z = 12.8;
+
+// The motel door, on the east wall. Warm light under it, which the cave has
+// no business having.
+export const MOTEL_DOOR_X = HALF_W - 0.35;
+export const MOTEL_DOOR_Z = 6;
