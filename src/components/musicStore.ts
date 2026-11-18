@@ -63,9 +63,12 @@ let autoStartArmed = false;
 // In the mall ("mall") it's muzak: summed to mono and played through cheap
 // ceiling speakers all over a glass-roofed marble atrium, so it arrives from
 // nowhere in particular as a bright, long reverb, over the air handling.
+// In the powerhouse ("plant") it comes from the control gallery's radio, a
+// small band-limited speaker heard mostly as a long, dark wash off a steel
+// roof, over the generators: a low mains drone and a faint turbine whine.
 // If Web Audio is unavailable, volume falls back to the elements' own volume
 // and there are no effects.
-export type Acoustics = "open" | "tv" | "hall" | "mall" | "court";
+export type Acoustics = "open" | "tv" | "hall" | "mall" | "court" | "plant";
 const TV_LEVEL = 1.1;
 const PA_DRY_LEVEL = 0.35;
 const PA_WET_LEVEL = 1.25;
@@ -75,12 +78,17 @@ const MALL_WET_LEVEL = 1.1;
 // open air, with a short slapback off the motel's front wall.
 const COURT_DRY_LEVEL = 0.55;
 const COURT_WET_LEVEL = 0.6;
+// The turbine hall: a radio up on the gallery, nearly all reverb.
+const PLANT_DRY_LEVEL = 0.12;
+const PLANT_WET_LEVEL = 1.15;
+const PLANT_DRONE_LEVEL = 1;
 const AMBIENCE_LEVEL: Record<Acoustics, number> = {
   open: 0,
   tv: 1,
   hall: 0.8,
   mall: 0.45,
   court: 0.3,
+  plant: 0.6,
 };
 let acoustics: Acoustics = "open";
 let audioCtx: AudioContext | null = null;
@@ -95,6 +103,9 @@ let mallDry: GainNode | null = null;
 let mallWet: GainNode | null = null;
 let courtDry: GainNode | null = null;
 let courtWet: GainNode | null = null;
+let plantDry: GainNode | null = null;
+let plantWet: GainNode | null = null;
+let plantDrone: GainNode | null = null;
 let ambienceGain: GainNode | null = null;
 let master: GainNode | null = null;
 
@@ -149,6 +160,41 @@ function buildAmbience(ctx: AudioContext, out: AudioNode) {
   buzz.start();
 }
 
+// The generators: a deep 50 Hz drone with its harmonics, beating slowly
+// against a second set a fraction off (three machines, two running), and a
+// faint high whine from the turbines. Always running; silent unless the
+// powerhouse is the current world.
+function buildTurbineDrone(ctx: AudioContext, out: AudioNode) {
+  const tones: [number, OscillatorType, number][] = [
+    [50, "sine", 0.05],
+    [50.4, "sine", 0.035],
+    [100, "triangle", 0.016],
+    [150.6, "sine", 0.008],
+  ];
+  for (const [f, type, g] of tones) {
+    const osc = ctx.createOscillator();
+    osc.type = type;
+    osc.frequency.value = f;
+    const gain = ctx.createGain();
+    gain.gain.value = g;
+    osc.connect(gain).connect(out);
+    osc.start();
+  }
+  const whine = ctx.createOscillator();
+  whine.frequency.value = 1480;
+  const whineGain = ctx.createGain();
+  whineGain.gain.value = 0.0025;
+  // A slow wobble, as if the load changed a little now and then.
+  const lfo = ctx.createOscillator();
+  lfo.frequency.value = 0.07;
+  const lfoGain = ctx.createGain();
+  lfoGain.gain.value = 9;
+  lfo.connect(lfoGain).connect(whine.frequency);
+  whine.connect(whineGain).connect(out);
+  whine.start();
+  lfo.start();
+}
+
 // A synthetic impulse response for a big empty space: a few discrete early
 // reflections, then a dense noise tail that decays and loses its highs as it
 // goes. The stockroom's concrete hall (the default) rings for ~4 s and goes
@@ -184,6 +230,20 @@ const COURT: Space = {
     [14, 0.45],
     [29, 0.3],
     [52, 0.2],
+  ],
+};
+// A turbine hall: steel roof, tiled walls, 17 m up. Very long, very dark,
+// first reflections far off.
+const TURBINE_HALL: Space = {
+  seconds: 7.5,
+  brightness: 0.5,
+  dulling: 0.42,
+  decay: 2.4,
+  reflections: [
+    [52, 0.35],
+    [97, 0.3],
+    [151, 0.26],
+    [233, 0.18],
   ],
 };
 const ATRIUM: Space = {
@@ -308,6 +368,26 @@ function ensureGraph() {
     courtLow.connect(courtDry).connect(master);
     courtLow.connect(courtyard).connect(courtWet).connect(master);
 
+    // Powerhouse: the radio on the control desk, into the turbine hall.
+    const plantHigh = ctx.createBiquadFilter();
+    plantHigh.type = "highpass";
+    plantHigh.frequency.value = 300;
+    const plantLow = ctx.createBiquadFilter();
+    plantLow.type = "lowpass";
+    plantLow.frequency.value = 2600;
+    plantLow.Q.value = 1.6;
+    const turbineHall = ctx.createConvolver();
+    turbineHall.buffer = hallImpulse(ctx, TURBINE_HALL);
+    plantDry = ctx.createGain();
+    plantWet = ctx.createGain();
+    musicGain.connect(plantHigh).connect(plantLow);
+    plantLow.connect(plantDry).connect(master);
+    plantLow.connect(turbineHall).connect(plantWet).connect(master);
+    plantDrone = ctx.createGain();
+    plantDrone.gain.value = 0;
+    plantDrone.connect(master);
+    buildTurbineDrone(ctx, plantDrone);
+
     musicGain.connect(directGain).connect(master);
     musicGain
       .connect(tvHigh)
@@ -345,13 +425,17 @@ function applyAcoustics(immediate = false) {
     !mallDry ||
     !mallWet ||
     !courtDry ||
-    !courtWet
+    !courtWet ||
+    !plantDry ||
+    !plantWet ||
+    !plantDrone
   )
     return;
   const tv = acoustics === "tv";
   const hall = acoustics === "hall";
   const mall = acoustics === "mall";
   const court = acoustics === "court";
+  const plant = acoustics === "plant";
   const targets: [AudioParam, number][] = [
     [directGain.gain, acoustics === "open" ? 1 : 0],
     [tvGain.gain, tv ? TV_LEVEL : 0],
@@ -361,6 +445,9 @@ function applyAcoustics(immediate = false) {
     [mallWet.gain, mall ? MALL_WET_LEVEL : 0],
     [courtDry.gain, court ? COURT_DRY_LEVEL : 0],
     [courtWet.gain, court ? COURT_WET_LEVEL : 0],
+    [plantDry.gain, plant ? PLANT_DRY_LEVEL : 0],
+    [plantWet.gain, plant ? PLANT_WET_LEVEL : 0],
+    [plantDrone.gain, plant ? PLANT_DRONE_LEVEL : 0],
     [ambienceGain.gain, AMBIENCE_LEVEL[acoustics]],
   ];
   const now = audioCtx.currentTime;

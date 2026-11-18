@@ -21,6 +21,8 @@ const GRADE: Partial<Record<WorldId, { bloom: number; radius: number; vignette: 
   mall: { bloom: 0.75, radius: 0.55, vignette: 0.5 },
   // The courtyard is brightest of all; let the neon and the low sun flare.
   motel: { bloom: 0.9, radius: 0.62, vignette: 0.42 },
+  // A dark hall with one fire in it: let the fire flare, close the corners.
+  powerhouse: { bloom: 0.85, radius: 0.6, vignette: 0.55 },
 };
 
 export default function Effects({ world }: { world: WorldId }) {

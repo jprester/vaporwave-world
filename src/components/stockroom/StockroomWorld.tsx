@@ -1,12 +1,14 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
+import { MODEL, useFittedModel } from "./models";
 import {
   CanvasTexture,
   Color,
   DoubleSide,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  PointLight,
   SRGBColorSpace,
 } from "three";
 import DoorTrigger from "../DoorTrigger";
@@ -20,6 +22,8 @@ import {
 import {
   DESK_X,
   DESK_Z,
+  DOOR_11_X,
+  DOOR_11_Z,
   DOOR_X,
   DOOR_Z,
   MALL_DOOR_X,
@@ -38,7 +42,9 @@ import {
 import {
   ColumnsLot,
   DoorsLot,
+  FittedPrimitive,
   HeliosLot,
+  Tag,
   Racks,
   SeaLot,
   Suns,
@@ -86,6 +92,14 @@ export default function StockroomWorld({ active, feed }: Props) {
       <ColumnsLot />
       <Suns />
       <StockroomDoor />
+      <Door11 />
+      <DoorTrigger
+        to="powerhouse"
+        x={DOOR_11_X}
+        z={DOOR_11_Z}
+        normal={[0, 1]}
+        active={active}
+      />
       <Desk feed={feed} />
       <InventoryBoard />
       <LoadingShutter />
@@ -416,6 +430,84 @@ function StockroomDoor() {
         material={sign}>
         <planeGeometry args={[2.2, 0.55]} />
       </mesh>
+    </group>
+  );
+}
+
+// Door #11, hung at last, in the north wall west of the suns. Its tag is
+// still on the handle. Warm, unsteady light comes from under it: firelight.
+function Door11() {
+  const model = useFittedModel(MODEL.door, 4);
+  const spillRef = useRef<PointLight>(null);
+  const { spill, gap } = useMemo(() => {
+    const g = document.createElement("canvas");
+    g.width = 128;
+    g.height = 64;
+    const gctx = g.getContext("2d")!;
+    const grad = gctx.createLinearGradient(0, 0, 0, 64);
+    grad.addColorStop(0, "rgba(255,255,255,1)");
+    grad.addColorStop(0.25, "rgba(255,255,255,0.35)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    gctx.fillStyle = grad;
+    gctx.fillRect(0, 0, 128, 64);
+    gctx.globalCompositeOperation = "destination-in";
+    const side = gctx.createLinearGradient(0, 0, 128, 0);
+    side.addColorStop(0, "rgba(0,0,0,0)");
+    side.addColorStop(0.2, "rgba(0,0,0,1)");
+    side.addColorStop(0.8, "rgba(0,0,0,1)");
+    side.addColorStop(1, "rgba(0,0,0,0)");
+    gctx.fillStyle = side;
+    gctx.fillRect(0, 0, 128, 64);
+    const spill = new MeshBasicMaterial({
+      map: new CanvasTexture(g),
+      color: new Color(2.2, 1.0, 0.35),
+      transparent: true,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const gap = new MeshBasicMaterial({
+      color: new Color(3.0, 1.5, 0.5),
+      toneMapped: false,
+    });
+    return { spill, gap };
+  }, []);
+  useEffect(
+    () => () => {
+      spill.map?.dispose();
+      spill.dispose();
+      gap.dispose();
+    },
+    [spill, gap],
+  );
+  useFrame((state) => {
+    if (!spillRef.current) return;
+    const t = state.clock.getElapsedTime();
+    spillRef.current.intensity =
+      2.2 * (0.85 + Math.sin(t * 7.3) * 0.08 + Math.sin(t * 13.1 + 1.3) * 0.06);
+  });
+  return (
+    <group name="door-11" position={[DOOR_11_X, 0, DOOR_11_Z]}>
+      <FittedPrimitive model={model} position={[0, 0, 0]} />
+      <Tag
+        lines={["DOOR #11", "HUNG", "-> POWERHOUSE"]}
+        position={[0.42, 1.08, 0.295]}
+        rotation={[0, 0, 0.12]}
+        size={0.4}
+      />
+      <mesh position={[0, 0.012, 0.29]} material={gap}>
+        <planeGeometry args={[1.6, 0.024]} />
+      </mesh>
+      <mesh position={[0, 0.004, 0.95]} rotation={[-Math.PI / 2, 0, 0]} material={spill}>
+        <planeGeometry args={[2.2, 1.3]} />
+      </mesh>
+      <pointLight
+        ref={spillRef}
+        position={[0, 0.15, 0.7]}
+        color="#ffa45c"
+        intensity={2.2}
+        distance={3.5}
+        decay={2}
+      />
     </group>
   );
 }

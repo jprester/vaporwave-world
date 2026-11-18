@@ -96,6 +96,11 @@ export function lot(id: string): Lot {
 export const MALL_DOOR_X = 10.6;
 export const MALL_DOOR_Z = -HALF_L + 0.35;
 
+// Door #11, no longer in lot 4: hung at last in the north wall, west of the
+// suns, mirroring the mall entrance. It leads to the powerhouse.
+export const DOOR_11_X = -10.6;
+export const DOOR_11_Z = -HALF_L + 0.35;
+
 // The spare suns, leaning on the north wall at the end of the central aisle.
 export const SUN_Z = -HALF_L + 0.9;
 export const SUN_DIAMETER = 7;
