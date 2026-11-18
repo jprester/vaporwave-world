@@ -100,7 +100,11 @@ src/
     └── UI.tsx            # HUD, music controls, door prompt, fade overlay
 
 docs/
-└── WORLD.md              # World bible: concept, rules, log of each round (spoilers)
+└── WORLD.md              # World bible: concept, rules, pitfalls, log of each
+                          #   round (spoilers)
+
+.claude/skills/
+└── surprise-round/       # /surprise-round: Claude Code builds the next world
 
 public/
 ├── models/               # GLB props (bust, columns, boombox, ...)
@@ -135,6 +139,17 @@ npm run flicker -- --x 16 --z -8 --yaw -1.15 --pitch 0.12
 ```
 
 Presets: `stair`, `office`, `balcony`, `gate`, `pool`, `facade`, `roomfront`. The tool prints changed-area and eroded "solid" percentages plus the largest cluster, and writes `screenshots/flicker-<name>.png`. The `?nopost=1` and `?freeze=1` URL flags exist for this tool.
+
+## Growing the world
+
+New worlds arrive in "surprise rounds". Run the project skill in [Claude Code](https://claude.com/claude-code) from the repo root:
+
+```bash
+/surprise-round                      # Claude picks the next world
+/surprise-round something underwater # or give it a nudge
+```
+
+Claude reads the world bible ([docs/WORLD.md](docs/WORLD.md)), picks the next room in the dream (usually pulling on an open thread from an earlier round), builds it on a `claude/surprise-round-N` branch, and checks it in headless Chromium: build, door test, screenshots, scripted walks and the flicker detector, fixing what it finds. It then logs the round in the bible and merges it into `main` locally (no push, no PR). `git revert -m 1 <merge commit>` undoes a round. A round is a large job, so run it when you have usage to spare. The skill is defined in `.claude/skills/surprise-round/SKILL.md`; the rules and known pitfalls it builds by live in the bible.
 
 ## Credits
 
