@@ -176,8 +176,9 @@ a door back to each, so it's the hub:
   `advanceTime`, `setCameraOrientation(yaw, pitch)`,
   `setPlayerPosition(x, z, y?)` (y is the floor to stand on), `travel(world?)`, `setFeedSegment(i)`,
   `qa_doors()` (the current world's doors) and `qa_renderInfo()` (draw
-  calls, triangles and GPU memory over one frame). In QA mode the keyboard
-  is off, so drive with the hooks.
+  calls, triangles and GPU memory over one frame). Place and aim the
+  camera with the hooks; the keyboard still works in QA mode, so a
+  Playwright script can walk by holding keys while pumping `advanceTime()`.
 - **Screenshots:** `npm run dev`, then
   `CHROMIUM_PATH=/opt/pw-browsers/chromium-*/chrome-linux/chrome node
   scripts/shot.mjs --url "http://localhost:3000/?qa=1&world=..." --out x.png
@@ -193,6 +194,37 @@ a door back to each, so it's the hub:
   changed and eroded-solid percentages; a z-fight is a solid cluster, ordinary
   parallax is a thin edge. Presets are motel-specific; `--world`, `--x`, `--z`,
   `--yaw` and `--pitch` work for any world.
+
+### Pitfalls (each of these has shipped once)
+
+- **Shared GLTFs.** `useGLTF` returns one cached scene per URL, shared by
+  every world. Never put the cached scene itself in the tree: place a
+  clone, and give a clone an explicit position, rotation and scale (or use
+  `useFittedModel`). A lazily loaded world clones *after* the eager worlds
+  have committed, so it inherits whatever transform they set on the
+  original: the motel's gate door once floated in the sky this way.
+- **Coplanar faces.** No face may lie in the plane of another surface with
+  a different material: that z-fights and flickers as you walk. Anything
+  behind a wall (roof slabs, side walls, interiors) stops at the wall's
+  *back* face, not its front. Decals and signs sit 1–2 cm proud, or use
+  `polygonOffset`. Same-material pieces of one wall overlap by a few
+  centimetres instead of butting, or the hairline crack sparkles.
+- **The player is 2.4 m wide.** Colliders grow by the 1.2 m radius. A
+  walkway between two colliders needs more than 2.4 m between them, or
+  one collider must be set back (the motel balcony's facade collider sits
+  0.6 m behind the wall). Two colliders that disagree only work by push
+  order; don't rely on it.
+- **Close everything raised.** Under every stair, ramp and platform, add a
+  low collider the walker on top is always above, or the player walks
+  into the solid from below.
+- **Every visual and its collider share one constant.** Positions typed
+  twice drift apart (the motel's sign pole was 0.4 m off its collider).
+- **Props need something behind them.** Anything wall-mounted needs a wall
+  at that height, and anything on a counter needs the counter under it.
+  Check against the actual extents of what's behind, not the intent.
+- **Look, don't trust.** Screenshot every area at eye level, upstairs, and
+  looking up at corners, and run the flicker test on those views. Most of
+  these pitfalls were invisible in the code and obvious in a screenshot.
 
 ## Log
 
