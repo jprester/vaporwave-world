@@ -543,3 +543,35 @@ export function makeSmallSignTexture(top: string, bottom: string) {
   ctx.fillText(bottom, 128, 92);
   return texture(c);
 }
+
+// The motel's name, painted along the parapet in tall teal capitals with a
+// cream keyline. Transparent around the letters, so the stucco shows.
+export function makeParapetLetteringTexture() {
+  const [c, ctx] = canvas(2048, 128);
+  ctx.clearRect(0, 0, 2048, 128);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = "bold 96px 'Arial Black', Helvetica, Arial, sans-serif";
+  // Spread the letters out the way a sign painter would.
+  const text = "S U N S E T   M O T E L";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 12;
+  ctx.strokeStyle = "#f2ddc6";
+  ctx.strokeText(text, 1024, 68);
+  ctx.fillStyle = "#1c6f70";
+  ctx.fillText(text, 1024, 68);
+  return texture(c);
+}
+
+// Lettering stencilled on the pool coping: teal on transparent.
+export function makeCopingMarkTexture(text: string) {
+  const w = text.length > 5 ? 512 : 256;
+  const [c, ctx] = canvas(w, 128);
+  ctx.clearRect(0, 0, w, 128);
+  ctx.fillStyle = "#1b6b6b";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = "bold 86px Helvetica, Arial, sans-serif";
+  ctx.fillText(text, w / 2, 68, w - 24);
+  return texture(c);
+}

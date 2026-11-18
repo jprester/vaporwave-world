@@ -33,11 +33,8 @@ import {
   makeNeonTexture,
 } from "../mall/textures";
 import * as C from "./constants";
-
-// QA hook: ?freeze=1 holds water, palms, the floating ring and the neon
-// flicker still, so the flicker-diff tool can isolate geometry.
-const FREEZE = new URLSearchParams(window.location.search).has("freeze");
 import {
+  makeCopingMarkTexture,
   makeCurtainTexture,
   makeDeckTexture,
   makeDisturbTexture,
@@ -46,6 +43,7 @@ import {
   makeMotelBoardTexture,
   makeNumberTexture,
   makeOfficeSignTexture,
+  makeParapetLetteringTexture,
   makePoolRulesTexture,
   makePoolTileTexture,
   makeSmallSignTexture,
@@ -53,6 +51,10 @@ import {
   makeUmbrellaTexture,
   makeVendingTexture,
 } from "./textures";
+
+// QA hook: ?freeze=1 holds water, palms, the floating ring and the neon
+// flicker still, so the flicker-diff tool can isolate geometry.
+const FREEZE = new URLSearchParams(window.location.search).has("freeze");
 
 // The Sunset Motel: a courtyard motel at permanent golden hour. The door in
 // the cave's east wall comes out through the gate; the sun is going down in
@@ -146,6 +148,9 @@ function useAssets() {
     const clock = makeClockTexture();
     const frond = makeFrondTexture();
     const bark = makeBarkTexture();
+    const lettering = makeParapetLetteringTexture();
+    const noDiving = makeCopingMarkTexture("NO DIVING");
+    const depth = makeCopingMarkTexture("5 FT");
 
     const glass = new MeshStandardMaterial({
       color: "#a9f0e4",
@@ -240,6 +245,33 @@ function useAssets() {
         color: "#cfe0b8",
       }),
       bark: new MeshStandardMaterial({ map: bark, roughness: 0.75 }),
+      // Painted straight onto the stucco and the coping: alpha-tested so
+      // they sort like the surface under them, and pulled forward in depth
+      // so they never fight it.
+      lettering: new MeshStandardMaterial({
+        map: lettering,
+        alphaTest: 0.35,
+        roughness: 0.85,
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits: -2,
+      }),
+      noDiving: new MeshStandardMaterial({
+        map: noDiving,
+        alphaTest: 0.35,
+        roughness: 0.8,
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits: -2,
+      }),
+      depth: new MeshStandardMaterial({
+        map: depth,
+        alphaTest: 0.35,
+        roughness: 0.8,
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits: -2,
+      }),
       towelPink: new MeshStandardMaterial({ color: "#e8909f", roughness: 0.95 }),
       towelCream: new MeshStandardMaterial({ color: "#f0dfc8", roughness: 0.95 }),
       sand: new MeshStandardMaterial({ color: "#c8a882", roughness: 1 }),
@@ -258,6 +290,7 @@ function useAssets() {
       deck, stucco, poolTile, curtainWarm, curtainTv, curtainDark,
       ...numbers, board, gateBoard, neon, vending, umbrella, poolRules,
       golden, officeSign, disturb, ice, phone, clock, frond, bark,
+      lettering, noDiving, depth,
       ...Object.values(mats).flatMap((m) => (Array.isArray(m) ? m : [m])),
     ];
     return { mats, all };
@@ -508,6 +541,10 @@ function Fence({ a }: { a: Assets }) {
 
 // ── The motel building, rooms and office ────────────────────────────────────
 
+// The facade is a 0.2 m slab whose front face is MOTEL_FRONT_Z; anything
+// built behind it ends at its back face.
+const BEHIND_FACADE_Z = C.MOTEL_FRONT_Z - 0.2;
+
 function Building({ a }: { a: Assets }) {
   const wallZ = C.MOTEL_FRONT_Z - 0.1;
   return (
@@ -516,12 +553,15 @@ function Building({ a }: { a: Assets }) {
       <mesh position={[4, 1.75, wallZ]} material={a.mats.stuccoFlat} castShadow>
         <boxGeometry args={[36, 3.5, 0.2]} />
       </mesh>
-      {/* Office bay: a sill, a header and three piers around glass. */}
-      <mesh position={[-21.5, 1.75, wallZ]} material={a.mats.stuccoFlat} castShadow>
-        <boxGeometry args={[1, 3.5, 0.2]} />
+      {/* Office bay: a sill, a header and three piers around glass. The
+          pieces overlap by a few centimetres rather than meeting edge to edge:
+          butted boxes leave a hairline crack that sparkles as you move. Being
+          the same material, the overlaps are invisible. */}
+      <mesh position={[-21.48, 1.75, wallZ]} material={a.mats.stuccoFlat} castShadow>
+        <boxGeometry args={[1.04, 3.5, 0.2]} />
       </mesh>
       <mesh position={[-18.2, 0.45, wallZ]} material={a.mats.stuccoFlat}>
-        <boxGeometry args={[4.6, 0.9, 0.2]} />
+        <boxGeometry args={[4.68, 0.9, 0.2]} />
       </mesh>
       <mesh position={[-17.5, 3.1, wallZ]} material={a.mats.stuccoFlat} castShadow>
         <boxGeometry args={[7, 0.8, 0.2]} />
@@ -532,7 +572,7 @@ function Building({ a }: { a: Assets }) {
         { x: -14.2, w: 0.4 },
       ].map((p, i) => (
         <mesh key={i} position={[p.x, 1.8, wallZ]} material={a.mats.stuccoFlat} castShadow>
-          <boxGeometry args={[p.w, 1.8, 0.2]} />
+          <boxGeometry args={[p.w, 1.84, 0.2]} />
         </mesh>
       ))}
 
@@ -571,26 +611,32 @@ function Building({ a }: { a: Assets }) {
       <mesh position={[0, 7.94, wallZ]} material={a.mats.cream}>
         <boxGeometry args={[C.HALF_W * 2 + 0.2, 0.08, 0.42]} />
       </mesh>
-      <mesh position={[0, 7.05, -17]} material={a.mats.dark}>
-        <boxGeometry args={[C.HALF_W * 2, 0.2, 6]} />
+      {/* The roof, the end walls and the office's side walls all stop at the
+          back of the facade (BEHIND_FACADE_Z), not its front: a box reaching
+          the front face puts its own face in the same plane as the facade's,
+          and the two z-fight while you walk (a dark streak under the parapet,
+          a flickering strip down each corner and beside the office window). */}
+      <mesh position={[0, 7.05, (C.MOTEL_BACK_Z + BEHIND_FACADE_Z) / 2]} material={a.mats.dark}>
+        <boxGeometry args={[C.HALF_W * 2, 0.2, BEHIND_FACADE_Z - C.MOTEL_BACK_Z]} />
       </mesh>
       {[-1, 1].map((s) => (
         <mesh
           key={s}
-          position={[s * (C.HALF_W - 0.15), 3.95, -17]}
+          position={[s * (C.HALF_W - 0.15), 3.95, (C.MOTEL_BACK_Z + BEHIND_FACADE_Z) / 2]}
           material={a.mats.stuccoDark}
           castShadow
           receiveShadow>
-          <boxGeometry args={[0.3, 7.9, 6]} />
+          <boxGeometry args={[0.3, 7.9, BEHIND_FACADE_Z - C.MOTEL_BACK_Z]} />
         </mesh>
       ))}
       <mesh position={[0, 3.95, -19.9]} material={a.mats.stuccoDark} receiveShadow>
         <boxGeometry args={[C.HALF_W * 2, 7.9, 0.2]} />
       </mesh>
 
-      {/* A painted "MOTEL" band on the upper facade. */}
-      <mesh position={[6.2, 5.55, C.MOTEL_FRONT_Z + 0.005]} material={a.mats.cream}>
-        <planeGeometry args={[4.6, 0.28]} />
+      {/* The name, painted along the parapet where the whole courtyard can
+          read it (and clear of every door and window below). */}
+      <mesh position={[3.5, 7.43, C.MOTEL_FRONT_Z + 0.075]} material={a.mats.lettering}>
+        <planeGeometry args={[13, 0.8]} />
       </mesh>
 
       {/* Ground rooms 1–5. */}
@@ -795,7 +841,8 @@ function Office({ a }: { a: Assets }) {
       <mesh position={[-16.9, 2.88, C.MOTEL_FRONT_Z + 0.04]} material={a.mats.officeSign}>
         <planeGeometry args={[1.7, 0.44]} />
       </mesh>
-      <mesh position={[-13.8, 1.55, C.MOTEL_FRONT_Z + 0.035]} material={a.mats.golden}>
+      {/* Beside the office door, clear of the downpipe and the pilaster. */}
+      <mesh position={[-13.42, 1.55, C.MOTEL_FRONT_Z + 0.012]} material={a.mats.golden}>
         <planeGeometry args={[0.62, 0.31]} />
       </mesh>
 
@@ -810,8 +857,11 @@ function Office({ a }: { a: Assets }) {
         <boxGeometry args={[7.2, 2.9, 0.12]} />
       </mesh>
       {[-1, 1].map((s) => (
-        <mesh key={s} position={[s === -1 ? -20.9 : -14.1, 1.45, -15.45]} material={a.mats.stuccoDark}>
-          <boxGeometry args={[0.12, 2.9, 2.9]} />
+        <mesh
+          key={s}
+          position={[s === -1 ? -20.9 : -14.1, 1.45, (C.OFFICE_BACK_Z + BEHIND_FACADE_Z) / 2]}
+          material={a.mats.stuccoDark}>
+          <boxGeometry args={[0.12, 2.9, BEHIND_FACADE_Z - C.OFFICE_BACK_Z]} />
         </mesh>
       ))}
 
@@ -869,7 +919,7 @@ function Office({ a }: { a: Assets }) {
       <mesh position={[-16.3, 1.19, -15.5]} rotation={[0, 0, Math.PI / 2]} material={a.mats.dark}>
         <cylinderGeometry args={[0.035, 0.035, 0.26, 10]} />
       </mesh>
-      <Fitted model={helios} position={[-15.1, 1.12, -15.65]} rotation={[0, 0.35, 0]} />
+      <Fitted model={helios} position={[-17.75, 1.12, -15.6]} rotation={[0, 0.35, 0]} />
     </group>
   );
 }
@@ -889,14 +939,14 @@ function Balcony({ a }: { a: Assets }) {
       <mesh position={[0, C.STOREY_Y - 0.16, C.BALCONY_Z + 0.04]} material={a.mats.teal}>
         <boxGeometry args={[C.HALF_W * 2, 0.34, 0.14]} />
       </mesh>
-      {/* The underside, lit by a strip of warm lamps. */}
+      {/* The underside, lit by a strip of warm lamps fixed to the soffit. */}
       {[-16, -8, 0, 8, 16].map((x) => (
-        <mesh key={x} position={[x, C.STOREY_Y - 0.31, C.BALCONY_Z + 0.7]} material={a.mats.bulb}>
+        <mesh key={x} position={[x, C.BALCONY_SOFFIT_Y - 0.02, C.BALCONY_Z - 0.9]} material={a.mats.bulb}>
           <boxGeometry args={[1.3, 0.04, 0.08]} />
         </mesh>
       ))}
       <pointLight
-        position={[0, C.STOREY_Y - 0.45, C.BALCONY_Z + 0.6]}
+        position={[0, C.BALCONY_SOFFIT_Y - 0.25, C.BALCONY_Z - 0.6]}
         color="#ffb27a"
         intensity={5}
         distance={13}
@@ -935,8 +985,8 @@ function Balcony({ a }: { a: Assets }) {
 
       {/* Posts that carry the balcony. */}
       {C.BALCONY_POSTS.map((x) => (
-        <mesh key={x} position={[x, C.STOREY_Y / 2, C.BALCONY_Z + 0.35]} material={a.mats.cream} castShadow>
-          <boxGeometry args={[0.2, C.STOREY_Y, 0.2]} />
+        <mesh key={x} position={[x, C.BALCONY_SOFFIT_Y / 2, C.BALCONY_POST_Z]} material={a.mats.cream} castShadow>
+          <boxGeometry args={[0.2, C.BALCONY_SOFFIT_Y, 0.2]} />
         </mesh>
       ))}
     </group>
@@ -1146,13 +1196,15 @@ function Pool({ a }: { a: Assets }) {
       ))}
       {/* A ring left floating. */}
       <FloatingRing />
-      {/* Depth marks, painted on the coping. */}
+      {/* Depth marks, painted on the south coping: the same depth at both
+          ends, and a warning nobody at the diving board can see. */}
       {[
-        { x: C.POOL_X - halfW + 1.2, z: pos + halfD + 0.02 },
-        { x: C.POOL_X + halfW - 1.2, z: pos + halfD + 0.02 },
+        { x: C.POOL_X - halfW + 1.2, m: a.mats.depth, w: 0.5 },
+        { x: C.POOL_X, m: a.mats.noDiving, w: 1.0 },
+        { x: C.POOL_X + halfW - 1.2, m: a.mats.depth, w: 0.5 },
       ].map((p, i) => (
-        <mesh key={i} position={[p.x, 0.13, p.z]} rotation={[-Math.PI / 2, 0, 0]} material={a.mats.teal}>
-          <planeGeometry args={[0.5, 0.22]} />
+        <mesh key={i} position={[p.x, 0.121, pos + halfD + 0.18]} rotation={[-Math.PI / 2, 0, 0]} material={p.m}>
+          <planeGeometry args={[p.w, 0.25]} />
         </mesh>
       ))}
     </group>
@@ -1200,10 +1252,10 @@ function NeonSign({ a }: { a: Assets }) {
 
   return (
     <group name="neon-sign" position={[C.SIGN_X, 0, C.SIGN_Z]}>
-      <mesh position={[0, C.SIGN_POLE_H / 2, -0.4]} material={a.mats.chrome} castShadow>
+      <mesh position={[0, C.SIGN_POLE_H / 2, C.SIGN_POLE_DZ]} material={a.mats.chrome} castShadow>
         <cylinderGeometry args={[0.12, 0.17, C.SIGN_POLE_H, 10]} />
       </mesh>
-      <mesh position={[0, 2.2, -0.4]} material={a.mats.dark}>
+      <mesh position={[0, 2.2, C.SIGN_POLE_DZ]} material={a.mats.dark}>
         <boxGeometry args={[0.5, 0.35, 0.35]} />
       </mesh>
       {/* The board, facing the courtyard (and a dark back). */}
@@ -1339,7 +1391,9 @@ function Gate({ a }: { a: Assets }) {
 
       {/* The door itself, warm light under it. */}
       <group position={[C.MOTEL_DOOR_X, 0, C.MOTEL_DOOR_Z]} rotation={[0, -Math.PI / 2, 0]}>
-        <primitive object={door} />
+        {/* Explicit, so the clone never inherits a transform from the cached
+            original. */}
+        <primitive object={door} position={[0, 0, 0]} rotation={[0, 0, 0]} scale={1} />
         <mesh position={[0, 0.012, 0.32]} material={gap}>
           <planeGeometry args={[1.7, 0.03]} />
         </mesh>
@@ -1348,9 +1402,12 @@ function Gate({ a }: { a: Assets }) {
         </mesh>
         <pointLight position={[0, 0.18, 0.8]} color="#ffb27a" intensity={2.6} distance={4.5} decay={2} />
       </group>
-      {/* The plaque, on the wall just inside the gate. */}
-      <mesh position={[C.HALF_W - 0.34, 1.55, 8.6]} rotation={[0, -Math.PI / 2, 0]} material={a.mats.golden}>
-        <planeGeometry args={[1.1, 0.55]} />
+      {/* The plaque, on the inside face of the south pylon. */}
+      <mesh
+        position={[wallX - 0.355, 1.6, C.GATE_PYLON_Z[1]]}
+        rotation={[0, -Math.PI / 2, 0]}
+        material={a.mats.golden}>
+        <planeGeometry args={[0.52, 0.26]} />
       </mesh>
     </group>
   );
@@ -1412,7 +1469,7 @@ function Palm({ x, z, height, seed, a, frond }: {
           <mesh
             key={k}
             geometry={frond}
-            material={a.mats.frond ?? a.mats.teal}
+            material={a.mats.frond}
             rotation={[
               Math.sin(k * 2.7) * 0.2,
               seed + (k / 9) * Math.PI * 2,
@@ -1587,7 +1644,19 @@ function Fittings({ a }: { a: Assets }) {
         </mesh>
       </group>
 
-      {/* Payphone, on the east wall. */}
+      {/* Payphone, on its own post in front of the low east wall, under a
+          small hood. */}
+      <group position={[C.PAYPHONE[0], 0, C.PAYPHONE[1]]} rotation={[0, -Math.PI / 2, 0]}>
+        <mesh position={[0, 1.0, -0.17]} material={a.mats.chrome} castShadow>
+          <boxGeometry args={[0.1, 2.0, 0.1]} />
+        </mesh>
+        <mesh position={[0, 2.02, 0.0]} material={a.mats.teal} castShadow>
+          <boxGeometry args={[0.62, 0.05, 0.46]} />
+        </mesh>
+        <mesh position={[0, 1.55, -0.125]} material={a.mats.teal}>
+          <boxGeometry args={[0.58, 0.9, 0.02]} />
+        </mesh>
+      </group>
       <group position={[C.PAYPHONE[0], 1.35, C.PAYPHONE[1]]} rotation={[0, -Math.PI / 2, 0]}>
         <mesh material={a.mats.dark} castShadow>
           <boxGeometry args={[0.42, 0.62, 0.22]} />

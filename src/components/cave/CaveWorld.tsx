@@ -725,7 +725,7 @@ function MotelDoor() {
     ctx.font = "bold 40px Arial, Helvetica, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("SUNSET MOTEL", 160, 58);
+    ctx.fillText("SUNSET MOTEL", 160, 58, 280);
     ctx.fillStyle = "#ff8fae";
     ctx.font = "bold 25px Arial, Helvetica, sans-serif";
     ctx.fillText("VACANCY", 160, 103);

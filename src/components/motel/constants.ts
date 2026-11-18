@@ -24,6 +24,8 @@ export const PARAPET_Y = 7.9;
 export const BALCONY_DEPTH = 2.4;
 export const BALCONY_Z = MOTEL_FRONT_Z + BALCONY_DEPTH; // -11.6
 export const BALCONY_RAIL_Y = STOREY_Y + 0.95;
+// The balcony slab's underside.
+export const BALCONY_SOFFIT_Y = STOREY_Y - 0.3;
 
 export const BAY = 7;
 export const BAY_XS = [-17.5, -10.5, -3.5, 3.5, 10.5, 17.5];
@@ -81,10 +83,13 @@ export const GATE_HEIGHT = 5.4;
 export const SIGN_X = -17;
 export const SIGN_Z = -9.8;
 export const SIGN_POLE_H = 10.2;
+// The pole stands a little behind the board.
+export const SIGN_POLE_DZ = -0.4;
 
 export const VENDING: [number, number] = [21.15, -0.8];
 export const ICE: [number, number] = [21.15, 2.2];
-export const PAYPHONE: [number, number] = [21.72, 11];
+// The payphone hangs on its own post in front of the low east wall.
+export const PAYPHONE: [number, number] = [21.42, 11];
 export const MAID_CART: [number, number] = [13.6, -12.35];
 export const POOL_SIGN: [number, number] = [7.2, 8.8];
 export const ASHTRAY: [number, number] = [8.6, -8.2];
@@ -107,8 +112,10 @@ export const UMBRELLAS: [number, number][] = [
   [2.7, 10.1],
 ];
 
-// Three posts hold up the balcony; they sit just inside the railing.
+// Four posts hold up the balcony; they stand under its front edge, just
+// inside the railing.
 export const BALCONY_POSTS = [-15, -5, 5, 15];
+export const BALCONY_POST_Z = BALCONY_Z - 0.2;
 
 // The Venus statue is out by the pool, on a low plinth.
 export const VENUS: [number, number] = [-14.2, 7.2];
@@ -143,9 +150,24 @@ export const FLOORS: FloorPatch[] = [
 
 const GROUND = { y0: -1, y1: 2 };
 
+// The player is a 1.2 m-radius footprint, as wide as the balcony is deep, so
+// upstairs the facade collider stands a little behind the real wall. That
+// leaves a strip to walk along between it and the railing, rather than two
+// colliders that disagree about where the player may stand.
+const UPPER_FACADE_SETBACK = 0.6;
+
 export const COLLIDERS: Footprint[] = [
-  // The building itself: every room, and the office, is behind this.
-  { cx: 0, cz: (MOTEL_FRONT_Z + MOTEL_BACK_Z) / 2, w: HALF_W * 2, d: MOTEL_DEPTH, y0: -1, y1: PARAPET_Y },
+  // The building itself: every room, and the office, is behind this. The
+  // ground storey stops under the balcony slab.
+  { cx: 0, cz: (MOTEL_FRONT_Z + MOTEL_BACK_Z) / 2, w: HALF_W * 2, d: MOTEL_DEPTH, y0: -1, y1: BALCONY_SOFFIT_Y },
+  {
+    cx: 0,
+    cz: (MOTEL_FRONT_Z - UPPER_FACADE_SETBACK + MOTEL_BACK_Z) / 2,
+    w: HALF_W * 2,
+    d: MOTEL_DEPTH - UPPER_FACADE_SETBACK,
+    y0: BALCONY_SOFFIT_Y,
+    y1: PARAPET_Y,
+  },
   // The pool is a hole, not a surface.
   { cx: POOL_X, cz: POOL_Z, w: POOL_W, d: POOL_D, y0: -2, y1: 0.16 },
   // Loungers and their umbrellas.
@@ -156,7 +178,7 @@ export const COLLIDERS: Footprint[] = [
   // Poolside fittings.
   { cx: VENDING[0], cz: VENDING[1], w: 0.85, d: 1.5, ...GROUND },
   { cx: ICE[0], cz: ICE[1], w: 0.95, d: 1.2, ...GROUND },
-  { cx: PAYPHONE[0], cz: PAYPHONE[1], w: 0.5, d: 0.9, ...GROUND },
+  { cx: PAYPHONE[0], cz: PAYPHONE[1], w: 0.6, d: 0.6, ...GROUND },
   { cx: MAID_CART[0], cz: MAID_CART[1], w: 1.25, d: 0.8, ...GROUND },
   { cx: POOL_X, cz: POOL_Z - POOL_D / 2 - 0.6, w: 1.0, d: 1.2, ...GROUND },
   { cx: POOL_SIGN[0], cz: POOL_SIGN[1], w: 0.5, d: 0.5, ...GROUND },
@@ -165,7 +187,7 @@ export const COLLIDERS: Footprint[] = [
   { cx: VENUS[0], cz: VENUS[1], w: 1.45, d: 1.45, ...GROUND },
   { cx: TABLE[0], cz: TABLE[1], w: 5.6, d: 4.2, ...GROUND },
   // The neon sign's pole.
-  { cx: SIGN_X, cz: SIGN_Z, w: 0.55, d: 0.55, y0: -1, y1: SIGN_POLE_H },
+  { cx: SIGN_X, cz: SIGN_Z + SIGN_POLE_DZ, w: 0.55, d: 0.55, y0: -1, y1: SIGN_POLE_H },
   // The balcony railing, and the stair's outer rail.
   {
     cx: (-HALF_W + STAIR_X0) / 2,
@@ -183,10 +205,23 @@ export const COLLIDERS: Footprint[] = [
     y0: -1,
     y1: STOREY_Y + 2.15,
   },
+  // The body of the stair is solid. From the courtyard you could otherwise
+  // walk under the balcony to its east end and on into the steps, which are
+  // too high to climb there. The block stops low enough that it never
+  // touches someone climbing the treads (their feet are above it wherever
+  // its footprint, grown by the player's radius, reaches).
+  {
+    cx: (STAIR_X0 + STAIR_X1) / 2,
+    cz: STAIR_Z0 + 1.4,
+    w: STAIR_X1 - STAIR_X0,
+    d: 2.8,
+    y0: -1,
+    y1: 0.5,
+  },
   // Balcony posts (they stand on the courtyard, under the slab).
   ...BALCONY_POSTS.map((cx) => ({
     cx,
-    cz: BALCONY_Z - 0.2,
+    cz: BALCONY_POST_Z,
     w: 0.22,
     d: 0.22,
     ...GROUND,

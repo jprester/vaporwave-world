@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useGLTF } from "@react-three/drei";
 import {
   COLUMN_POSITIONS,
@@ -9,15 +10,28 @@ import {
   PEDESTAL_HEIGHT,
 } from "./constants";
 
+// useGLTF caches one scene per URL and every world shares it, so the island
+// places clones rather than the cached originals. Moving an original would
+// carry its transform into any clone made later (the lazily loaded worlds
+// clone the same door, bust and statue).
+function useClone(url: string) {
+  const { scene } = useGLTF(url);
+  return useMemo(() => scene.clone(true), [scene]);
+}
+
 export function DoricColumns() {
   const { scene } = useGLTF("/models/misc/doric_pillar.glb");
+  const columns = useMemo(
+    () => COLUMN_POSITIONS.map(() => scene.clone(true)),
+    [scene],
+  );
   return (
     <group name="doric-columns">
       {COLUMN_POSITIONS.map((pos, i) => (
         <primitive
           key={i}
           name={`doric-column-${i}`}
-          object={scene.clone(true)}
+          object={columns[i]}
           position={pos}
         />
       ))}
@@ -26,7 +40,7 @@ export function DoricColumns() {
 }
 
 export function VaporwaveBust() {
-  const { scene } = useGLTF("/models/statue/helios_vaporwave_bust.glb");
+  const scene = useClone("/models/statue/helios_vaporwave_bust.glb");
   return (
     <primitive
       name="vaporwave-bust"
@@ -38,7 +52,7 @@ export function VaporwaveBust() {
 }
 
 export function WomanStatue() {
-  const { scene } = useGLTF("/models/statue/woman1_aiSkin1_0.001.glb");
+  const scene = useClone("/models/statue/woman1_aiSkin1_0.001.glb");
   return (
     <primitive
       name="woman-statue"
@@ -55,7 +69,7 @@ export function WomanStatue() {
 }
 
 export function FloorDoor() {
-  const { scene } = useGLTF("/models/door/door.glb");
+  const scene = useClone("/models/door/door.glb");
   return (
     <primitive
       name="floor-door"

@@ -394,7 +394,7 @@ conference had run long.
 - **Around the courtyard.** Four loungers and two parasols, a plastic
   table with two chairs and a boombox, three palms, the Venus statue on a
   plinth by the pool, the maid's cart parked under the balcony, a vending
-  machine and an ice machine by the gate, a payphone with its cord, a
+  machine and an ice machine by the gate, a payphone on a post with its cord, a
   standing ashtray with one cigarette in it, and a sign by the pool.
 - **Look.** Everything the island has, one layer down and with a front
   desk: pink stucco, teal doors and railings, chrome, cream deck paint,
@@ -425,6 +425,33 @@ glitter, a little sparkle, no planar reflection pass. The motel is 411
 draw calls and 36k triangles in the courtyard, and hidden it costs the
 other worlds nothing. Its group is in `IslandFeed`'s `others`, though it
 does not watch Plato TV. The door test covers cave → motel → cave.
+
+**Fixed after round 3.**
+
+- The gate's door floated in the sky above the opening. The island placed
+  the cached door, bust and statue GLTFs directly, so any clone made later
+  (the motel is lazy) inherited the island's transform. The island now
+  places clones, and the gate sets its door's transform explicitly.
+- From the courtyard you could walk under the balcony to its east end and
+  on into the solid stair; the stair's body is now a low collider.
+- The balcony is 2.4 m deep and the player 2.4 m wide, so the facade and
+  railing colliders disagreed about where to stand and only worked by
+  push order. Upstairs, the facade collider now sits 0.6 m behind the wall.
+- Placement: the balcony posts and soffit lamps stood outside the slab;
+  the neon sign's collider missed its pole; the payphone and the golden
+  hour plaque hung in the air above the low east wall (the phone now has
+  a post and hood, the plaque is on the south pylon); the office's Helios
+  bust floated off the end of the counter; the office plaque sat behind
+  the downpipe; the depth marks overhung the water.
+- Z-fighting on the facade: the roof slab, the two end walls and the
+  office's side walls all reached the facade's front face, so their faces
+  shared its plane (a dark streak under the parapet, flickering strips at
+  the corners and beside the office window). They now stop at the back of
+  the facade. The office bay's piers, sill and header overlap slightly
+  instead of butting, which closes a hairline crack that sparkled.
+- The plain cream "MOTEL" strip crossed room 9's door and room 10's
+  window. The parapet now reads SUNSET MOTEL, and the south coping
+  reads 5 FT · NO DIVING · 5 FT.
 
 **Open threads for future rounds.**
 
