@@ -38,12 +38,22 @@ The worlds so far, roughly in order of depth:
    diving board, the VACANCY sign, one lit room, one room lit by a
    television, a maid's cart and a gate that lets you back into the cave.
    *Where you stay while the golden hour is on loan.*
+6. **The powerhouse.** Behind door #11, hung at last in the stockroom's
+   north wall: Plato's Cove Light & Power, the generating station where the
+   golden hour is made. A cold, high turbine hall: three generators, a duct
+   out to every account, a control gallery where the log says 18:47 on every
+   line, a spare moon on the crane, and at the far end, behind a round
+   glass door in a boiler, the fire. Its light throws the generators'
+   shadows down the hall onto the wall by the door. *The fire behind the
+   wall, the one thing in the allegory the prisoners never see.*
 
 The first three go further back, each less dressed up and more honest about
 the island being made. The mall goes the other way, out front, to where the
 island is packaged and sold, and it's the hub: every world opens onto it.
 The motel is where the transaction is spent: the golden hour on loan, the
-room you sleep in after the island. Nothing so far has reached the real
+room you sleep in after the island. The powerhouse is the deepest room so
+far, straight back behind the stockroom: the source of the light, and the
+meters that bill for it. Nothing so far has reached the real
 "outside". That's on purpose, see the open threads.
 
 ## Map
@@ -53,8 +63,9 @@ are still joined in a line, and each also has a mall entrance; the mall has
 a door back to each, so it's the hub:
 
 ```
-            island ───────── cave ───────── stockroom
-         (east edge)    (west wall)    (north wall, behind the suns)
+            island ───────── cave ───────── stockroom ───────── powerhouse
+         (east edge)    (west wall)    (north wall,      (door #11, stockroom
+               │              │         behind the suns)  north wall, west)
                │              │              │
                │         sunset motel        │
                │        (cave east wall)     │
@@ -75,6 +86,8 @@ a door back to each, so it's the hub:
 | motel | gate | cave | east wall of the courtyard |
 | stockroom | FRONT OF HOUSE | cave | south wall, under the slogan |
 | stockroom | mall entrance | mall | north wall, behind the spare suns |
+| stockroom | door #11 | powerhouse | north wall, west of the suns |
+| powerhouse | STORES, door No. 11 | stockroom | south wall, west end |
 | mall | Plato's Cove Holidays | island | concourse, west side, unit G04 |
 | mall | Hotel & Conference Suites | cave | upper mall, east side, unit U08 |
 | mall | STAFF ONLY, service corridor | stockroom | concourse, north wall, under the EXIT sign |
@@ -135,16 +148,19 @@ a door back to each, so it's the hub:
   world, the way a player does: stands in front, faces it, checks
   `nearDoor` on every frame, travels with no argument and checks where it
   lands. Rerun it whenever a door, a collider or an arrival moves.
-- **Audio:** `musicStore.ts` has five acoustics: `open` (island), `tv`
+- **Audio:** `musicStore.ts` has six acoustics: `open` (island), `tv`
   (cave, panned out of the video wall), `hall` (stockroom: PA horns into a
   synthetic 4 s concrete reverb), `mall` (muzak: summed to mono, small
   ceiling speakers, into a longer, brighter 5.6 s atrium reverb, over the
-  room tone) and `court` (the motel: a short, dry 2.6 s courtyard slap
-  with little high end). Reverbs are `Space`s passed to `hallImpulse`.
+  room tone) `court` (the motel: a short, dry 2.6 s courtyard slap
+  with little high end) and `plant` (the powerhouse: a small radio on the
+  control desk, nearly all 7.5 s dark turbine-hall reverb, over a 50 Hz
+  generator drone and a faint turbine whine that only play in this mode). Reverbs are `Space`s passed to `hallImpulse`.
   Add a mode rather than special-casing one.
 - **Plato TV** (`IslandFeed.tsx`) renders the island into a texture while any
   world in `WATCHES_TV` (Scene) is current or being travelled to (the
-  cave, the stockroom, and the mall, for Television City's window). Hide
+  cave, the stockroom, the mall, for Television City's window, and the
+  powerhouse, for the monitor on the control desk). Hide
   new worlds' groups via its `others` prop.
 - **Assets:** no new binary assets unless their license is certain. Poly
   Haven (CC0) is fine: record each download in `ASSETS.md`, compress meshes
@@ -172,7 +188,7 @@ a door back to each, so it's the hub:
 - **Player:** radius 1.2, eye height 1.7. Keep walkways at least 2.6 wide.
   The door model is an arched double door, 1.9 m wide and 4 m tall.
 - **Debug:** `?qa=1` hides the UI and skips the compatibility gate;
-  `?world=cave|stockroom|mall|motel` starts there. Hooks: `window.render_game_to_text`,
+  `?world=cave|stockroom|mall|motel|powerhouse` starts there. Hooks: `window.render_game_to_text`,
   `advanceTime`, `setCameraOrientation(yaw, pitch)`,
   `setPlayerPosition(x, z, y?)` (y is the floor to stand on), `travel(world?)`, `setFeedSegment(i)`,
   `qa_doors()` (the current world's doors) and `qa_renderInfo()` (draw
@@ -222,6 +238,11 @@ a door back to each, so it's the hub:
 - **Props need something behind them.** Anything wall-mounted needs a wall
   at that height, and anything on a counter needs the counter under it.
   Check against the actual extents of what's behind, not the intent.
+- **Check the arrival sightline.** The first thing a world shows is what's
+  in line with its arrival, and a big prop on that line hides the room's
+  point: the powerhouse's generators first stood between the door and the
+  fire. Draw the line from the arrival to the money shot before placing
+  anything large.
 - **Look, don't trust.** Screenshot every area at eye level, upstairs, and
   looking up at corners, and run the flicker test on those views. Most of
   these pitfalls were invisible in the code and obvious in a screenshot.
@@ -500,3 +521,105 @@ does not watch Plato TV. The door test covers cave → motel → cave.
 - **The road.** There is no road to the motel, only the gate back into the
   cave. The hills outside the fence are silhouettes and nothing else. Like
   the loading bay and the mall's car park, the way out is best kept shut.
+
+### Round 4: the powerhouse
+
+**Added.** A sixth world behind door #11, and the door itself, hung.
+
+- **Door #11.** The stockroom's spare door, tagged NOT YET HUNG,
+  DESTINATION: TBC since round 1, is gone from lot 4 and hung in the
+  stockroom's north wall, west of the suns, mirroring the mall entrance.
+  Its tag is still on it (DOOR #11, HUNG, -> POWERHOUSE), and warm,
+  unsteady light comes from under it. The counts stay honest: the lot's
+  tag and the inventory board now say 11 doors, 4 out.
+- **The hall.** Plato's Cove Light & Power, Golden Hour Generating Station
+  No. 1: a 30 × 66 m turbine hall, 17 m high. Glazed green-cream tile dado,
+  painted blockwork, steel stanchions carrying crane rails, roof trusses,
+  cold high-bay lamps, and tall windows painted over from outside. Pink
+  walkway lines on a grey-green floor.
+- **The fire.** At the far end, a riveted boiler on a firebrick setting,
+  with a round glass fire door showing the fire (a flame shader). The cast
+  plaque: THE FIRE, LIT 21 JUNE 1987, AT 18:47, NOT TO BE LET OUT, ALL
+  SHADOWS ARE PROPERTY OF PLATO'S COVE HOLIDAYS. A gauge with its needle
+  in the golden band, KEEP THE FIRE IN stencilled high on the wall, and the
+  fuel: sacks of NOSTALGIA, GRADE B, 25 kg, on pallets (the tag: GRADE A:
+  NONE LEFT), and one open sack by the fire door with the shovel in it.
+  The fire is the only warm light in the hall, a shadow-casting spot, so
+  the generators throw long shadows down the hall onto the south wall,
+  over the meters: Plato's wall, with the fire behind it.
+- **The generators.** Three, faded teal with pink bands, on plinths, each
+  with a cast nameplate (GOLDEN HOUR GENERATOR No. n, 18:47 · 50 Hz ·
+  1987) and a status lamp. No. 2 is roped off with red-and-white chain:
+  OUT OF SERVICE, SINCE 18:47. A silver duct comes up out of the boiler,
+  runs the length of the roof with a drop into each generator, and ends in
+  a manifold on the south wall that splits four ways: ISLAND, MOTEL,
+  AGORA, PLATO TV.
+- **The moon.** A spare full moon hangs from the overhead crane in front
+  of the boiler, turning very slowly on the hook, lit from inside. Its
+  empty cradle is under it: MOON (SPARE), PHASES: FULL ONLY, -> AGORA, ON
+  CALL.
+- **The control gallery.** Up a steel stair along the east wall, over a
+  wall of switchgear (a big OUTPUT gauge and a DANGER board: GOLDEN HOUR ·
+  11,000 LUX, DO NOT LOOK DIRECTLY AT THE SUPPLY). The canopy fascia says
+  CONTROL ROOM and NIGHT NOT SUPPLIED, with a clock stopped at 6:47. On
+  the desk: a monitor showing Plato TV turned to the empty chair, a chart
+  recorder drawing a flat line, a mug, BACK IN 5 MINUTES, and the station
+  log, open, every entry at 18:47 (mostly SUNSET. HELD.; also FIRE FED, 2
+  SACKS (B), GEN 2 STILL DOWN, MOON BACK FROM AGORA, PHONE RANG AT MOTEL,
+  FINAL NOTICE (FILED), NO RELIEF YET). On the wall behind, the mimic
+  board: THE FIRE to three generators to the island, the motel, the
+  Agora's outlet and Plato TV, every lamp lit except No. 2's.
+- **Who pays.** By the door, a meter for each account with its disc
+  turning (the Agora's barely): ISLAND, SUNSET MOTEL (POOL · SIGN · ROOM
+  9), THE AGORA (SUNSET OUTLET ONLY), PLATO TV. Every one says PAYER: THE
+  OCCUPIER. On the shelf below, two wire trays of unopened post, the top
+  envelope a FINAL NOTICE to THE OCCUPIER, PLATO'S COVE (THE ISLAND). The
+  tariff beside them: dawn to dusk all N/A, GOLDEN HOUR: ON LOAN, NIGHT:
+  SEE MOON. On the west wall, a safety board: THIS STATION HAS RUN 12,784
+  DAYS WITHOUT A NIGHT, last night recorded 20 June 1987 (12,784 days is
+  exactly 35 years from the fire's lighting).
+- **Look.** Cold blue-grey light and fog, the vaporwave palette only in
+  faded paint (teal machines, pink lines and bands), and one warm source.
+  The fade in is cold dark with an ember at its centre.
+- **Sound.** A sixth acoustic, `plant`: the music from a small radio on
+  the desk, almost all of it a long, dark turbine-hall reverb, over the
+  generators' 50 Hz drone (two machines, beating slightly) and a faint,
+  slowly wandering turbine whine.
+
+**Why this one.** The island is the shadow play, the cave the audience,
+the stockroom the objects carried behind the wall. The one piece of the
+allegory left was the fire whose light makes the shadows, and the
+golden hour has been the series' running joke (on loan, guaranteed,
+70% off, provided by): this is where it is made and metered. It pulls
+three open threads at once: door #11 finally gets hung, "who is paying"
+gets an answer that isn't one (the occupier), and the golden hour's
+loan has a source. After the warm, open motel, it is enclosed, cold and
+vast, with the warmth confined to one round window.
+
+**Plumbing changed.** A new lazy world (`notReady` / `markWorldReady`,
+mounted when its door is in reach), a sixth acoustic (`plant`, with its
+own drone), a door each way in `worldStore` and `levels.ts`, and the
+powerhouse added to `WATCHES_TV` and `IslandFeed`'s `others`. The
+stockroom gains door #11 (`DOOR_11_X/Z`) and loses the standalone door
+from lot 4; `FittedPrimitive` is now exported from `stockroom/Stock.tsx`
+for reuse. All textures are procedural canvas (`powerhouse/textures.ts`);
+no new binary assets. The fire's spot light is the world's only shadow
+caster. The door test covers stockroom → powerhouse → stockroom.
+
+**Open threads for future rounds.**
+
+- **Generator No. 2.** Out of service since 18:47, roped off, its lamp
+  red on the mimic board. Nobody has opened it. Something could be inside,
+  or it could be what the duct to one of the accounts is missing.
+- **The meters and the post.** Everything is billed to the occupier, and
+  the final notices are filed unopened. If anyone ever opened one, there
+  would be a bill, an amount, and a date to pay by.
+- **Night.** The tariff says NIGHT: SEE MOON, the board says NIGHT NOT
+  SUPPLIED, and the moon is a spare on a hook, on call to the Agora. The
+  mall is the only place it's night. Where does the moon go when it's
+  sent, and what would happen if the station ever supplied a night?
+- **The flue and the windows.** The boiler's flue goes up through the
+  roof, and the windows are painted over from outside. Like the loading
+  bay, the car park and the motel's road, this is a way out; the bible's
+  advice stands: best kept shut, or handled with great restraint.
+- Door count: 11 made, 4 out (the island's, the cave's two, and #11).

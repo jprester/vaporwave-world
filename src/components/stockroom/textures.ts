@@ -213,7 +213,7 @@ export function makeInventoryTexture() {
     ["VENUS, WAVING", "6", "1 OUT"],
     ["HELIOS (HEAD ONLY)", "3", "1 OUT"],
     ["COLUMN, DORIC", "14", "9 OUT"],
-    ["DOOR", "11", "3 OUT"],
+    ["DOOR", "11", "4 OUT"],
     ["BOOMBOX", "12", "1 OUT"],
   ];
   ctx.font = "52px 'Comic Sans MS', 'Marker Felt', 'Trebuchet MS', cursive";

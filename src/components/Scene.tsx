@@ -18,6 +18,7 @@ import {
   ISLAND_LEVEL,
   MALL_LEVEL,
   MOTEL_LEVEL,
+  POWERHOUSE_LEVEL,
   STOCKROOM_LEVEL,
   type Level,
 } from "./levels";
@@ -42,6 +43,8 @@ import {
 const MallWorld = lazy(() => import("./mall/MallWorld"));
 // The motel is lazily loaded the same way.
 const MotelWorld = lazy(() => import("./motel/MotelWorld"));
+// And the powerhouse, behind door #11 in the stockroom.
+const PowerhouseWorld = lazy(() => import("./powerhouse/PowerhouseWorld"));
 
 // All worlds stay mounted; only the current one is visible (and so drawn and
 // lit). Fog, the camera's near plane and the acoustics are per world: the
@@ -60,6 +63,8 @@ const FOG: Record<WorldId, Fog> = {
   mall: new Fog(0x0a0c1a, 28, 120),
   // A warm haze over the courtyard, thick enough to soften the mountains.
   motel: new Fog(0xc9748a, 35, 230),
+  // Cold air under a high roof: the far end goes blue-grey, except the fire.
+  powerhouse: new Fog(0x0c1316, 26, 105),
 };
 const CAMERA_NEAR: Record<WorldId, number> = {
   island: 1,
@@ -67,6 +72,7 @@ const CAMERA_NEAR: Record<WorldId, number> = {
   stockroom: 0.05,
   mall: 0.05,
   motel: 0.05,
+  powerhouse: 0.05,
 };
 const LEVELS: Record<WorldId, Level> = {
   island: ISLAND_LEVEL,
@@ -74,6 +80,7 @@ const LEVELS: Record<WorldId, Level> = {
   stockroom: STOCKROOM_LEVEL,
   mall: MALL_LEVEL,
   motel: MOTEL_LEVEL,
+  powerhouse: POWERHOUSE_LEVEL,
 };
 // Island: straight from the boombox. Cave: out of the TVs. Stockroom: over
 // the warehouse PA, into a big reverberant hall. Mall: muzak from the
@@ -84,13 +91,19 @@ const ACOUSTICS: Record<WorldId, Acoustics> = {
   stockroom: "hall",
   mall: "mall",
   motel: "court",
+  powerhouse: "plant",
 };
 // Indoors the music's placement and falloff are handled by the Web Audio
 // graph (see musicStore), so the base level is simply full. (On the island,
 // MusicPlayer sets the level from distance every frame.)
 const INDOOR_MUSIC_LEVEL = 1;
 // Worlds that show Plato TV somewhere, so the island feed must be rendering.
-const WATCHES_TV = new Set<WorldId>(["cave", "stockroom", "mall"]);
+const WATCHES_TV = new Set<WorldId>([
+  "cave",
+  "stockroom",
+  "mall",
+  "powerhouse",
+]);
 
 export default function Scene() {
   const { camera, gl, scene } = useThree();
@@ -105,6 +118,7 @@ export default function Scene() {
   const stockroomGroup = useRef<Group>(null);
   const mallGroup = useRef<Group>(null);
   const motelGroup = useRef<Group>(null);
+  const powerhouseGroup = useRef<Group>(null);
   // Mount the mall once it's wanted: the player is at a door to it, on the
   // way there, or started there. It stays mounted after that.
   const [mallWanted, setMallWanted] = useState(false);
@@ -115,6 +129,12 @@ export default function Scene() {
   const wantMotel =
     world === "motel" || destination === "motel" || nearDoor === "motel";
   if (wantMotel && !motelWanted) setMotelWanted(true);
+  const [powerhouseWanted, setPowerhouseWanted] = useState(false);
+  const wantPowerhouse =
+    world === "powerhouse" ||
+    destination === "powerhouse" ||
+    nearDoor === "powerhouse";
+  if (wantPowerhouse && !powerhouseWanted) setPowerhouseWanted(true);
   const [feed, setFeed] = useState<FeedTextures | null>(null);
   const onFeedTextures = useCallback((t: FeedTextures) => setFeed(t), []);
 
@@ -206,10 +226,26 @@ export default function Scene() {
           </Suspense>
         )}
       </group>
+      <group ref={powerhouseGroup} visible={world === "powerhouse"}>
+        {powerhouseWanted && (
+          <Suspense fallback={null}>
+            <PowerhouseWorld
+              active={world === "powerhouse" && phase !== "out"}
+              feed={feed}
+            />
+          </Suspense>
+        )}
+      </group>
       <IslandFeed
         enabled={WATCHES_TV.has(world) || WATCHES_TV.has(destination)}
         island={islandGroup}
-        others={[caveGroup, stockroomGroup, mallGroup, motelGroup]}
+        others={[
+          caveGroup,
+          stockroomGroup,
+          mallGroup,
+          motelGroup,
+          powerhouseGroup,
+        ]}
         islandFog={FOG.island}
         onTextures={onFeedTextures}
       />

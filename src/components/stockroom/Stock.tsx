@@ -45,7 +45,7 @@ import {
 
 type Vec3 = [number, number, number];
 
-function FittedPrimitive({
+export function FittedPrimitive({
   model,
   position,
   rotation = [0, 0, 0],
@@ -552,8 +552,9 @@ export function HeliosLot() {
 }
 
 // ---------------------------------------------------------------------------
-// Lot 4: doors. Eleven made, three hung, the rest stacked here, all the same
-// door. One stands on its own, waiting to be installed somewhere.
+// Lot 4: doors. Eleven made, four hung, the rest stacked here, all the same
+// door. Door #11 used to stand on its own here, waiting to be installed; it
+// has been hung in the north wall (StockroomWorld's Door11).
 
 export function DoorsLot() {
   const model = useFittedModel(MODEL.door, 4);
@@ -575,21 +576,10 @@ export function DoorsLot() {
       <mesh position={[l.x0 + 3.9, 0.7, z]} material={wood}>
         <boxGeometry args={[0.9, 1.4, 2.2]} />
       </mesh>
-      <FittedPrimitive
-        model={model}
-        position={[l.x0 + 1.3, 0, -4.4]}
-        rotation={[0, -Math.PI / 2, 0]}
-      />
       <Tag
-        lines={["DOOR", "QTY 11   OUT 3", "HANG ANYWHERE"]}
+        lines={["DOOR", "QTY 11   OUT 4", "HANG ANYWHERE"]}
         position={[l.x0 + 0.62, 1.3, z]}
         rotation={[0, -Math.PI / 2, 0.1]}
-      />
-      <Tag
-        lines={["DOOR #11", "NOT YET HUNG", "DESTINATION: TBC"]}
-        position={[l.x0 + 0.9, 1.2, -4.4]}
-        rotation={[0, -Math.PI / 2, 0]}
-        size={0.45}
       />
     </group>
   );

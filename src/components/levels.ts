@@ -27,6 +27,7 @@ import * as CAVE from "./cave/constants";
 import * as STOCK from "./stockroom/constants";
 import * as MALL from "./mall/constants";
 import * as MOTEL from "./motel/constants";
+import * as POWER from "./powerhouse/constants";
 import type { WorldId } from "./worldStore";
 
 // A level is everything the player controller needs to walk a world: the
@@ -146,6 +147,13 @@ const CAVE_DOORS: DoorSpot[] = [
 const STOCKROOM_DOORS: DoorSpot[] = [
   { to: "cave", x: STOCK.DOOR_X, z: STOCK.DOOR_Z, normal: [0, -1] },
   { to: "mall", x: STOCK.MALL_DOOR_X, z: STOCK.MALL_DOOR_Z, normal: [0, 1] },
+  // Door #11, hung at last, in the north-west corner.
+  {
+    to: "powerhouse",
+    x: STOCK.DOOR_11_X,
+    z: STOCK.DOOR_11_Z,
+    normal: [0, 1],
+  },
 ];
 function door(doors: DoorSpot[], to: WorldId) {
   return doors.find((d) => d.to === to)!;
@@ -284,6 +292,7 @@ export const STOCKROOM_LEVEL: Level = {
   arrivals: {
     cave: { x: 0, z: STOCK.HALF_L - 4, yaw: 0 },
     mall: inFrontOf(door(STOCKROOM_DOORS, "mall"), 3),
+    powerhouse: inFrontOf(door(STOCKROOM_DOORS, "powerhouse"), 3),
   },
   doors: STOCKROOM_DOORS,
 };
@@ -332,4 +341,25 @@ export const MOTEL_LEVEL: Level = {
     cave: inFrontOf(door(MOTEL_DOORS, "cave"), 3.5),
   },
   doors: MOTEL_DOORS,
+};
+
+// The powerhouse: one long hall, with a control gallery up a stair along the
+// east wall. The gallery and the stair are floor patches.
+const POWERHOUSE_DOORS: DoorSpot[] = POWER.DOORS;
+
+export const POWERHOUSE_LEVEL: Level = {
+  floorY: 0,
+  floors: POWER.FLOORS,
+  bounds: {
+    minX: -POWER.HALF_W,
+    maxX: POWER.HALF_W,
+    minZ: -POWER.HALF_L,
+    maxZ: POWER.HALF_L,
+  },
+  colliders: [...POWER.COLLIDERS, ...POWERHOUSE_DOORS.map(doorFootprint)],
+  spawn: inFrontOf(door(POWERHOUSE_DOORS, "stockroom"), 3.2),
+  arrivals: {
+    stockroom: inFrontOf(door(POWERHOUSE_DOORS, "stockroom"), 3.2),
+  },
+  doors: POWERHOUSE_DOORS,
 };
