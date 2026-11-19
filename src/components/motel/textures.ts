@@ -537,10 +537,16 @@ export function makeSmallSignTexture(top: string, bottom: string) {
   ctx.fillStyle = "#e9f4f2";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = "bold 44px Helvetica, Arial, sans-serif";
+  // Shrink the title to fit, for the longer plaques.
+  let size = 44;
+  ctx.font = `bold ${size}px Helvetica, Arial, sans-serif`;
+  while (ctx.measureText(top).width > 226 && size > 20) {
+    size -= 2;
+    ctx.font = `bold ${size}px Helvetica, Arial, sans-serif`;
+  }
   ctx.fillText(top, 128, 50);
   ctx.font = "500 18px Helvetica, Arial, sans-serif";
-  ctx.fillText(bottom, 128, 92);
+  ctx.fillText(bottom, 128, 92, 230);
   return texture(c);
 }
 
