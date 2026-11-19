@@ -16,6 +16,7 @@ import IslandWorld from "./island/IslandWorld";
 import {
   CAVE_LEVEL,
   ISLAND_LEVEL,
+  LIDO_LEVEL,
   MALL_LEVEL,
   MOTEL_LEVEL,
   POWERHOUSE_LEVEL,
@@ -45,6 +46,8 @@ const MallWorld = lazy(() => import("./mall/MallWorld"));
 const MotelWorld = lazy(() => import("./motel/MotelWorld"));
 // And the powerhouse, behind door #11 in the stockroom.
 const PowerhouseWorld = lazy(() => import("./powerhouse/PowerhouseWorld"));
+// And the Lido, behind the motel's pool plant.
+const LidoWorld = lazy(() => import("./lido/LidoWorld"));
 
 // All worlds stay mounted; only the current one is visible (and so drawn and
 // lit). Fog, the camera's near plane and the acoustics are per world: the
@@ -65,6 +68,8 @@ const FOG: Record<WorldId, Fog> = {
   motel: new Fog(0xc9748a, 35, 230),
   // Cold air under a high roof: the far end goes blue-grey, except the fire.
   powerhouse: new Fog(0x0c1316, 26, 105),
+  // A pale, steamy haze: the far end of the pool goes pink-white.
+  lido: new Fog(0xf1dcec, 30, 150),
 };
 const CAMERA_NEAR: Record<WorldId, number> = {
   island: 1,
@@ -73,6 +78,7 @@ const CAMERA_NEAR: Record<WorldId, number> = {
   mall: 0.05,
   motel: 0.05,
   powerhouse: 0.05,
+  lido: 0.05,
 };
 const LEVELS: Record<WorldId, Level> = {
   island: ISLAND_LEVEL,
@@ -81,6 +87,7 @@ const LEVELS: Record<WorldId, Level> = {
   mall: MALL_LEVEL,
   motel: MOTEL_LEVEL,
   powerhouse: POWERHOUSE_LEVEL,
+  lido: LIDO_LEVEL,
 };
 // Island: straight from the boombox. Cave: out of the TVs. Stockroom: over
 // the warehouse PA, into a big reverberant hall. Mall: muzak from the
@@ -92,6 +99,7 @@ const ACOUSTICS: Record<WorldId, Acoustics> = {
   mall: "mall",
   motel: "court",
   powerhouse: "plant",
+  lido: "pool",
 };
 // Indoors the music's placement and falloff are handled by the Web Audio
 // graph (see musicStore), so the base level is simply full. (On the island,
@@ -119,6 +127,7 @@ export default function Scene() {
   const mallGroup = useRef<Group>(null);
   const motelGroup = useRef<Group>(null);
   const powerhouseGroup = useRef<Group>(null);
+  const lidoGroup = useRef<Group>(null);
   // Mount the mall once it's wanted: the player is at a door to it, on the
   // way there, or started there. It stays mounted after that.
   const [mallWanted, setMallWanted] = useState(false);
@@ -135,6 +144,10 @@ export default function Scene() {
     destination === "powerhouse" ||
     nearDoor === "powerhouse";
   if (wantPowerhouse && !powerhouseWanted) setPowerhouseWanted(true);
+  const [lidoWanted, setLidoWanted] = useState(false);
+  const wantLido =
+    world === "lido" || destination === "lido" || nearDoor === "lido";
+  if (wantLido && !lidoWanted) setLidoWanted(true);
   const [feed, setFeed] = useState<FeedTextures | null>(null);
   const onFeedTextures = useCallback((t: FeedTextures) => setFeed(t), []);
 
@@ -236,6 +249,13 @@ export default function Scene() {
           </Suspense>
         )}
       </group>
+      <group ref={lidoGroup} visible={world === "lido"}>
+        {lidoWanted && (
+          <Suspense fallback={null}>
+            <LidoWorld active={world === "lido" && phase !== "out"} />
+          </Suspense>
+        )}
+      </group>
       <IslandFeed
         enabled={WATCHES_TV.has(world) || WATCHES_TV.has(destination)}
         island={islandGroup}
@@ -245,6 +265,7 @@ export default function Scene() {
           mallGroup,
           motelGroup,
           powerhouseGroup,
+          lidoGroup,
         ]}
         islandFog={FOG.island}
         onTextures={onFeedTextures}

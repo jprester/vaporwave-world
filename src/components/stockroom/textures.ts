@@ -208,7 +208,7 @@ export function makeInventoryTexture() {
   ctx.fillRect(60, 118, 640, 5);
 
   const rows: [string, string, string][] = [
-    ["SUN, SETTING", "4", "1 OUT"],
+    ["SUN, SETTING", "4", "2 OUT"],
     ["SEA, CALM (ROLLED)", "6", "1 OUT"],
     ["VENUS, WAVING", "6", "1 OUT"],
     ["HELIOS (HEAD ONLY)", "3", "1 OUT"],

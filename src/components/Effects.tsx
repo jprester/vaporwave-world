@@ -23,6 +23,8 @@ const GRADE: Partial<Record<WorldId, { bloom: number; radius: number; vignette: 
   motel: { bloom: 0.9, radius: 0.62, vignette: 0.42 },
   // A dark hall with one fire in it: let the fire flare, close the corners.
   powerhouse: { bloom: 0.85, radius: 0.6, vignette: 0.55 },
+  // Bright tile and water: a soft, wide glow, the corners barely closed.
+  lido: { bloom: 0.7, radius: 0.65, vignette: 0.3 },
 };
 
 export default function Effects({ world }: { world: WorldId }) {

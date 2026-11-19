@@ -106,6 +106,14 @@ export default function MotelWorld({ active }: Props) {
       <PoolsideTable a={a} />
       <Fittings a={a} />
       <Venus />
+      <PoolPlant a={a} />
+      <DoorTrigger
+        to="lido"
+        x={C.PLANT_DOOR_X}
+        z={C.PLANT_DOOR_Z}
+        normal={[0, -1]}
+        active={active}
+      />
       <DoorTrigger
         to="cave"
         x={C.MOTEL_DOOR_X}
@@ -145,6 +153,7 @@ function useAssets() {
     const disturb = makeDisturbTexture();
     const ice = makeSmallSignTexture("ICE", "24 HOURS");
     const phone = makeSmallSignTexture("PHONE", "DIAL 0 FOR OFFICE");
+    const plant = makeSmallSignTexture("POOL PLANT", "STAFF ONLY · TO THE LIDO");
     const clock = makeClockTexture();
     const frond = makeFrondTexture();
     const bark = makeBarkTexture();
@@ -236,6 +245,9 @@ function useAssets() {
         emissiveIntensity: 0.3,
       }),
       phone: new MeshStandardMaterial({ map: phone, roughness: 0.5 }),
+      plant: new MeshStandardMaterial({ map: plant, roughness: 0.5 }),
+      // The Lido's light, through a porthole and under the door.
+      porthole: new MeshBasicMaterial({ color: new Color(0.9, 1.9, 1.85), toneMapped: false }),
       clock: new MeshStandardMaterial({ map: clock, roughness: 0.5 }),
       frond: new MeshStandardMaterial({
         map: frond,
@@ -289,7 +301,7 @@ function useAssets() {
     const all: { dispose: () => void }[] = [
       deck, stucco, poolTile, curtainWarm, curtainTv, curtainDark,
       ...numbers, board, gateBoard, neon, vending, umbrella, poolRules,
-      golden, officeSign, disturb, ice, phone, clock, frond, bark,
+      golden, officeSign, disturb, ice, phone, plant, clock, frond, bark,
       lettering, noDiving, depth,
       ...Object.values(mats).flatMap((m) => (Array.isArray(m) ? m : [m])),
     ];
@@ -1766,3 +1778,92 @@ useGLTF.preload(MODEL.venus);
 useGLTF.preload("/models/desk/plastic-table.glb");
 useGLTF.preload("/models/chair/platic-chair.glb");
 useGLTF.preload("/models/misc/retro-boombox.002.glb");
+
+// ── The pool plant ──────────────────────────────────────────────────────────
+
+// A stucco hut against the south wall, where the pool's pumps would be. The
+// door is the island's; the light under it, and in the porthole, is the
+// Lido's, bright and aqua.
+function PoolPlant({ a }: { a: Assets }) {
+  const door = useFittedModel(MODEL.door, 4);
+  const object = useMemo(() => door.clone(), [door]);
+  const w = C.PLANT_X1 - C.PLANT_X0;
+  const d = C.PLANT_Z1 - C.PLANT_Z0;
+  const cx = (C.PLANT_X0 + C.PLANT_X1) / 2;
+  const cz = (C.PLANT_Z0 + C.PLANT_Z1) / 2;
+  const spill = useMemo(() => {
+    const c = document.createElement("canvas");
+    c.width = 128;
+    c.height = 64;
+    const ctx = c.getContext("2d")!;
+    const grad = ctx.createLinearGradient(0, 0, 0, 64);
+    grad.addColorStop(0, "rgba(255,255,255,1)");
+    grad.addColorStop(0.3, "rgba(255,255,255,0.3)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 128, 64);
+    ctx.globalCompositeOperation = "destination-in";
+    const side = ctx.createLinearGradient(0, 0, 128, 0);
+    side.addColorStop(0, "rgba(0,0,0,0)");
+    side.addColorStop(0.2, "rgba(0,0,0,1)");
+    side.addColorStop(0.8, "rgba(0,0,0,1)");
+    side.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = side;
+    ctx.fillRect(0, 0, 128, 64);
+    return new MeshBasicMaterial({
+      map: new CanvasTexture(c),
+      color: new Color(0.6, 1.5, 1.45),
+      transparent: true,
+      depthWrite: false,
+      toneMapped: false,
+    });
+  }, []);
+  useEffect(
+    () => () => {
+      spill.map?.dispose();
+      spill.dispose();
+    },
+    [spill],
+  );
+  return (
+    <group name="pool-plant">
+      <mesh position={[cx, C.PLANT_H / 2, cz]} material={a.mats.stuccoFlat} castShadow receiveShadow>
+        <boxGeometry args={[w, C.PLANT_H, d]} />
+      </mesh>
+      <mesh position={[cx, C.PLANT_H + 0.05, cz]} material={a.mats.cream} castShadow>
+        <boxGeometry args={[w + 0.24, 0.1, d + 0.24]} />
+      </mesh>
+      {/* A teal tile band, and the door. */}
+      <mesh position={[cx, 4.55, C.PLANT_Z0 - 0.01]} material={a.mats.teal}>
+        <boxGeometry args={[w, 0.18, 0.02]} />
+      </mesh>
+      <group position={[C.PLANT_DOOR_X, 0, C.PLANT_DOOR_Z]} rotation={[0, Math.PI, 0]}>
+        <primitive object={object} position={door.offset} scale={door.scale} />
+      </group>
+      <mesh position={[C.PLANT_DOOR_X, 0.012, C.PLANT_DOOR_Z - 0.29]} rotation={[0, Math.PI, 0]} material={a.mats.porthole}>
+        <planeGeometry args={[1.6, 0.024]} />
+      </mesh>
+      <mesh position={[C.PLANT_DOOR_X, 0.006, C.PLANT_DOOR_Z - 0.95]} rotation={[-Math.PI / 2, 0, Math.PI]} material={spill}>
+        <planeGeometry args={[2.2, 1.3]} />
+      </mesh>
+      {/* The plaque beside the door, and a porthole, glowing. */}
+      <mesh position={[C.PLANT_DOOR_X + 1.5, 1.75, C.PLANT_Z0 - 0.012]} rotation={[0, Math.PI, 0]} material={a.mats.plant}>
+        <planeGeometry args={[0.8, 0.4]} />
+      </mesh>
+      <mesh position={[C.PLANT_X0 + 1.1, 2.6, C.PLANT_Z0 - 0.02]} material={a.mats.chrome}>
+        <torusGeometry args={[0.42, 0.06, 12, 32]} />
+      </mesh>
+      <mesh position={[C.PLANT_X0 + 1.1, 2.6, C.PLANT_Z0 - 0.01]} rotation={[0, Math.PI, 0]} material={a.mats.porthole}>
+        <circleGeometry args={[0.4, 32]} />
+      </mesh>
+      {/* A pipe out of the wall and into the ground, toward the pool. */}
+      <mesh position={[C.PLANT_X1 - 0.3, 1.1, C.PLANT_Z0 - 0.16]} material={a.mats.teal}>
+        <cylinderGeometry args={[0.09, 0.09, 2.2, 14]} />
+      </mesh>
+      <mesh position={[C.PLANT_X1 - 0.3, 2.2, C.PLANT_Z0 - 0.08]} rotation={[Math.PI / 2, 0, 0]} material={a.mats.teal}>
+        <cylinderGeometry args={[0.09, 0.09, 0.16, 14]} />
+      </mesh>
+      <pointLight position={[C.PLANT_DOOR_X, 0.3, C.PLANT_DOOR_Z - 0.8]} color="#8ff6ee" intensity={1.6} distance={3.5} decay={2} />
+    </group>
+  );
+}

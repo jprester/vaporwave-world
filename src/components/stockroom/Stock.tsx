@@ -632,7 +632,8 @@ export function ColumnsLot() {
 // ---------------------------------------------------------------------------
 // The suns. Four made: one is out over the island; one stands at the end of
 // the aisle plugged in for testing, filling the back of the warehouse with
-// sunset; two spares are still wrapped.
+// sunset; one spare is still wrapped. The other spare went to the Lido,
+// halved: its empty pallet is still here.
 
 export function Suns() {
   const { wood, wrap } = useStockMaterials();
@@ -699,24 +700,35 @@ export function Suns() {
         <boxGeometry args={[0.16, 0.24, 0.04]} />
       </mesh>
       <Tag
-        lines={["SUN, SETTING", "QTY 4   OUT 1", "TESTING - DO NOT STARE"]}
+        lines={["SUN, SETTING", "QTY 4   OUT 2", "TESTING - DO NOT STARE"]}
         position={[-2.2, 0.55, SUN_Z + 0.7]}
         rotation={[-0.4, 0.15, 0]}
         size={0.5}
       />
       {[-6, 6].map((x, i) => (
         <group key={x} position={[x, 0, SUN_Z + 0.15]} rotation={[lean, i ? -0.18 : 0.18, 0]}>
-          <mesh position={[0, spareD / 2 + 0.14, 0]} material={materials.spare}>
-            <planeGeometry args={[spareD, spareD]} />
-          </mesh>
-          <mesh position={[0, spareD / 2 + 0.14, 0.04]} material={wrap}>
-            <planeGeometry args={[spareD + 0.15, spareD + 0.2]} />
-          </mesh>
+          {i === 0 && (
+            <>
+              <mesh position={[0, spareD / 2 + 0.14, 0]} material={materials.spare}>
+                <planeGeometry args={[spareD, spareD]} />
+              </mesh>
+              <mesh position={[0, spareD / 2 + 0.14, 0.04]} material={wrap}>
+                <planeGeometry args={[spareD + 0.15, spareD + 0.2]} />
+              </mesh>
+            </>
+          )}
           <mesh position={[0, 0.07, 0.1]} material={wood}>
             <boxGeometry args={[spareD * 0.8, 0.14, 0.5]} />
           </mesh>
         </group>
       ))}
+      {/* Where the second spare stood. */}
+      <Tag
+        lines={["SUN (SPARE)", "OUT 1 -> LIDO", "HALVED FOR REFLECTION"]}
+        position={[6, 0.25, SUN_Z + 0.5]}
+        rotation={[-1.2, -0.18, 0]}
+        size={0.45}
+      />
       <pointLight
         position={[0, 3.2, SUN_Z + 3.5]}
         color="#ff7c96"

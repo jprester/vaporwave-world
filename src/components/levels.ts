@@ -28,6 +28,7 @@ import * as STOCK from "./stockroom/constants";
 import * as MALL from "./mall/constants";
 import * as MOTEL from "./motel/constants";
 import * as POWER from "./powerhouse/constants";
+import * as LIDO from "./lido/constants";
 import type { WorldId } from "./worldStore";
 
 // A level is everything the player controller needs to walk a world: the
@@ -339,6 +340,7 @@ export const MOTEL_LEVEL: Level = {
   spawn: { x: 0, z: 12, yaw: 0 },
   arrivals: {
     cave: inFrontOf(door(MOTEL_DOORS, "cave"), 3.5),
+    lido: inFrontOf(door(MOTEL_DOORS, "lido"), 3.5),
   },
   doors: MOTEL_DOORS,
 };
@@ -362,4 +364,25 @@ export const POWERHOUSE_LEVEL: Level = {
     stockroom: inFrontOf(door(POWERHOUSE_DOORS, "stockroom"), 3.2),
   },
   doors: POWERHOUSE_DOORS,
+};
+
+// The Lido: tiled poolrooms. The dry floors are patches at y = 0 over a
+// flooded base floor; the sun terrace and its stair are patches too.
+const LIDO_DOORS: DoorSpot[] = LIDO.DOORS;
+
+export const LIDO_LEVEL: Level = {
+  floorY: LIDO.WADE_Y,
+  floors: LIDO.FLOORS,
+  bounds: {
+    minX: -LIDO.HALF_W,
+    maxX: LIDO.HALF_W,
+    minZ: LIDO.NORTH_Z,
+    maxZ: LIDO.SOUTH_Z,
+  },
+  colliders: [...LIDO.COLLIDERS, ...LIDO_DOORS.map(doorFootprint)],
+  spawn: inFrontOf(door(LIDO_DOORS, "motel"), 3.2),
+  arrivals: {
+    motel: inFrontOf(door(LIDO_DOORS, "motel"), 3.2),
+  },
+  doors: LIDO_DOORS,
 };

@@ -46,6 +46,15 @@ The worlds so far, roughly in order of depth:
    glass door in a boiler, the fire. Its light throws the generators'
    shadows down the hall onto the wall by the door. *The fire behind the
    wall, the one thing in the allegory the prisoners never see.*
+7. **The Lido.** Behind the pool plant, a stucco hut in the motel's
+   courtyard: the poolrooms, where the reflections are made. White tile
+   with pink, lilac and aqua bands, a long pool under a lightbox sky, and
+   at its far end half a sun, standing in the water; its reflection is the
+   other half. A flooded hall of piers that ends in a mirror, changing
+   cubicles, a sun terrace, a closed slide, and the rules: look at the
+   water, and bathers must be reflected at all times. *Plato's freed
+   prisoner can't look at things yet, only at their reflections in water.
+   Here is the water.*
 
 The first three go further back, each less dressed up and more honest about
 the island being made. The mall goes the other way, out front, to where the
@@ -53,8 +62,9 @@ island is packaged and sold, and it's the hub: every world opens onto it.
 The motel is where the transaction is spent: the golden hour on loan, the
 room you sleep in after the island. The powerhouse is the deepest room so
 far, straight back behind the stockroom: the source of the light, and the
-meters that bill for it. Nothing so far has reached the real
-"outside". That's on purpose, see the open threads.
+meters that bill for it. The Lido goes sideways out of the motel, to the
+next step of the allegory after the fire: reflections. Nothing so far has
+reached the real "outside". That's on purpose, see the open threads.
 
 ## Map
 
@@ -67,7 +77,7 @@ a door back to each, so it's the hub:
          (east edge)    (west wall)    (north wall,      (door #11, stockroom
                │              │         behind the suns)  north wall, west)
                │              │              │
-               │         sunset motel        │
+               │         sunset motel ─ lido │
                │        (cave east wall)     │
                │              │              │
                └────────── the mall ─────────┘
@@ -84,6 +94,8 @@ a door back to each, so it's the hub:
 | cave | mall entrance | mall | west wall, near the entrance |
 | cave | SUNSET MOTEL staff door | motel | east wall, midway along |
 | motel | gate | cave | east wall of the courtyard |
+| motel | POOL PLANT, staff only | lido | the hut in the courtyard's south-east corner |
+| lido | TO THE MOTEL, via the pool plant | motel | entrance, south wall, centre |
 | stockroom | FRONT OF HOUSE | cave | south wall, under the slogan |
 | stockroom | mall entrance | mall | north wall, behind the spare suns |
 | stockroom | door #11 | powerhouse | north wall, west of the suns |
@@ -148,14 +160,18 @@ a door back to each, so it's the hub:
   world, the way a player does: stands in front, faces it, checks
   `nearDoor` on every frame, travels with no argument and checks where it
   lands. Rerun it whenever a door, a collider or an arrival moves.
-- **Audio:** `musicStore.ts` has six acoustics: `open` (island), `tv`
+- **Audio:** `musicStore.ts` has seven acoustics: `open` (island), `tv`
   (cave, panned out of the video wall), `hall` (stockroom: PA horns into a
   synthetic 4 s concrete reverb), `mall` (muzak: summed to mono, small
   ceiling speakers, into a longer, brighter 5.6 s atrium reverb, over the
   room tone) `court` (the motel: a short, dry 2.6 s courtyard slap
   with little high end) and `plant` (the powerhouse: a small radio on the
   control desk, nearly all 7.5 s dark turbine-hall reverb, over a 50 Hz
-  generator drone and a faint turbine whine that only play in this mode). Reverbs are `Space`s passed to `hallImpulse`.
+  generator drone and a faint turbine whine that only play in this mode),
+  and `pool` (the Lido: underwater speakers, muffled to 1.25 kHz, into a
+  bright 5.2 s wet-tile reverb with a fast flutter of early reflections,
+  over lapping water and drips, rendered once into looping buffers).
+  Reverbs are `Space`s passed to `hallImpulse`.
   Add a mode rather than special-casing one.
 - **Plato TV** (`IslandFeed.tsx`) renders the island into a texture while any
   world in `WATCHES_TV` (Scene) is current or being travelled to (the
@@ -185,10 +201,14 @@ a door back to each, so it's the hub:
   roughness map is also its wetness map: puddles reflect sharply and
   strongly, polished dry terrazzo softly (a blurrier mip). It roughly
   doubles the mall's draw calls; use it on one big floor, not everywhere.
+  The Lido uses three's own: `Water` on the long pool (as on the island)
+  and a `Reflector` mirror at the end of the flooded wing, which only
+  renders while the camera is near enough to see into it (a plain
+  silvered panel stands in from the hall).
 - **Player:** radius 1.2, eye height 1.7. Keep walkways at least 2.6 wide.
   The door model is an arched double door, 1.9 m wide and 4 m tall.
 - **Debug:** `?qa=1` hides the UI and skips the compatibility gate;
-  `?world=cave|stockroom|mall|motel|powerhouse` starts there. Hooks: `window.render_game_to_text`,
+  `?world=cave|stockroom|mall|motel|powerhouse|lido` starts there. Hooks: `window.render_game_to_text`,
   `advanceTime`, `setCameraOrientation(yaw, pitch)`,
   `setPlayerPosition(x, z, y?)` (y is the floor to stand on), `travel(world?)`, `setFeedSegment(i)`,
   `qa_doors()` (the current world's doors) and `qa_renderInfo()` (draw
@@ -243,6 +263,13 @@ a door back to each, so it's the hub:
   point: the powerhouse's generators first stood between the door and the
   fire. Draw the line from the arrival to the money shot before placing
   anything large.
+- **Openings lead somewhere walkable.** An arch or doorway that opens
+  straight onto a pier, a pillar or any collider within a player's width
+  is a door into a wall: the Lido's east arches first lined up exactly
+  with the rows of piers behind them. Put openings on the gaps.
+- **Shared sign helpers don't shrink to fit.** A label longer than the
+  ones a texture helper was written for runs off its canvas (the motel's
+  POOL PLANT plaque lost its P). Measure and shrink, and look at it.
 - **Look, don't trust.** Screenshot every area at eye level, upstairs, and
   looking up at corners, and run the flicker test on those views. Most of
   these pitfalls were invisible in the code and obvious in a screenshot.
@@ -623,3 +650,127 @@ caster. The door test covers stockroom → powerhouse → stockroom.
   bay, the car park and the motel's road, this is a way out; the bible's
   advice stands: best kept shut, or handled with great restraint.
 - Door count: 11 made, 4 out (the island's, the cave's two, and #11).
+
+### Round 5: the Lido
+
+**Added.** A seventh world, behind a new door in the motel, and the door.
+
+- **The pool plant.** A stucco hut in the south-east corner of the motel's
+  courtyard, against the south wall: a teal band, a POOL PLANT, STAFF
+  ONLY, TO THE LIDO plaque, a pipe into the ground, and a porthole glowing
+  aqua. The door is the island's; the light under it is the first cold,
+  bright light in the motel.
+- **The entrance.** White tile with pink and aqua bands, the door back
+  (TO THE MOTEL, VIA THE POOL PLANT). A pink-tiled kiosk with its price
+  board (ADULTS 1 GOLDEN HOUR, CHILDREN ½ GOLDEN HOUR, REFLECTIONS
+  INCLUDED, SHADOWS: PLEASE LEAVE AT KIOSK), BACK IN 5 MINUTES in the
+  window, and on the counter a wire basket of lost property: one shadow,
+  folded, its legs hanging over the edge, tagged 1 SHADOW (ADULT), FOUND
+  BY THE POOL, UNCLAIMED. A bank of 36 pastel lockers, every key in its
+  lock except number 7, which hangs open with a pink towel inside. Over
+  the round arch into the hall: THE POOL, PLEASE USE THE FOOTBATH.
+- **The hall.** Through a footbath you wade (a step down into ankle-deep
+  water), a 52 m tiled hall, 9 m high, around a 42 m reflecting pool. The
+  ceiling is a sky: a long lightbox, lilac over the door, warming to
+  peach over the far end. Pink coping, chrome ladders, a rubber ring and a
+  pink flamingo drifting, depth marks that say 0.3 M at the shallow end
+  and DEEPER IN REFLECTION at the deep end, a lifeguard's chair with a
+  parasol and its own BACK IN 5 MINUTES card, wet footprints from the
+  footbath to the chair's ladder, palms in pink planters, a pace clock
+  stopped at 47, and the rules on a post (LOOK AT THE WATER; THE SUN IS
+  FOR REFLECTION USE ONLY, DO NOT LOOK UP; NO DIVING, THE POOL IS DEEPER
+  IN REFLECTION THAN IN FACT; NO RUNNING, NO TURNING ROUND; BATHERS MUST
+  BE REFLECTED AT ALL TIMES; SHADOWS TO BE LEFT AT THE KIOSK).
+- **The half sun.** At the far end, standing in the water on a steel
+  stand, the top half of the striped vaporwave sun, in front of a mosaic
+  sunset (lilac to peach, pixel palms, stars) under PLATO'S COVE LIDO in
+  pink neon script. The pool's reflection completes it. Its plaque, at
+  the end of the east walkway: SUN, SETTING (SPARE), HALVED, FOR
+  REFLECTION USE, THE OTHER HALF IS SUPPLIED BY THE WATER, ON LOAN FROM
+  STOCK, DO NOT STARE. The stockroom's count agrees: one of its two
+  wrapped spares is gone, its empty pallet tagged OUT 1 -> LIDO, HALVED
+  FOR REFLECTION, and the lot tag and inventory board now say SUN,
+  SETTING: 4, 2 OUT.
+- **The flooded wing.** East of the hall, through four arches and a step
+  down: a low hall of square tiled piers in 20 cm of water, caustics on
+  the floor, glowing ceiling panels, a beach ball, DEPTH 0.2 M, WADING
+  ONLY on the piers, a chrome pool ladder with three rungs into it, and
+  at the north end a mirror the width of the wing, so the piers go on
+  for ever. It reflects everything except you. Beside it: PLEASE CHECK
+  YOUR REFLECTION BEFORE LEAVING.
+- **The west wing.** Six changing cubicles with pastel curtains, a
+  slatted bench with a towel on it, three showers (the middle one drips),
+  and a tiled stair up to the **sun terrace**: two loungers facing a
+  window over the hall (SUN TERRACE, THE SUN IS IN THE POOL, SEE WINDOW),
+  a round plunge pool (COLD, REFLECTIONS NOT GUARANTEED), and the top of a
+  pink slide that leaves through the window, crosses over the west
+  walkway on one post and comes down into the pool. It is chained off:
+  SLIDE CLOSED, NO LIFEGUARD ON DUTY. Under the terrace, a lilac door:
+  FILTER ROOM, REFLECTIONS, AUTHORISED STAFF ONLY.
+- **Look.** The island's own Tiles105 tiles everywhere, tinted white,
+  pink, lilac, aqua and pool blue, with UVs from world position so the
+  grout runs unbroken round every corner. Bright and soft: a pale
+  pink-white haze, a glossy clearcoat, a little room reflection, the
+  ceilings glowing faintly as if lit from the water. The fade in is white
+  to aqua with pink at the edges.
+- **Sound.** A seventh acoustic, `pool`: the music through underwater
+  speakers (muffled, no top end) into a long, bright wet-tile reverb with
+  a fast flutter of reflections, over water lapping and drips.
+
+**Why this one.** The hint was "poolrooms", and the island has called
+itself a poolroom platform since the beginning. After the fire, Plato's
+prisoner is led out of the cave, and at first can only bear to look at
+shadows, then at reflections in water, and only later at things and the
+sun. The powerhouse was the fire; the Lido is the water, the next stage,
+and like everything else here it is manufactured: the sun is half a prop
+and the reflection is the rest, the mirror shows the rooms but not you,
+and shadows are left at the kiosk. After the round 4 note that the
+powerhouse drifted out of the vaporwave palette, this one is the most
+squarely vaporwave room yet: tile, pastel, palms, a gradient sky, a
+striped sun, neon, glossy water. And after the cold dark hall it is
+bright, soft, close and wet, with a different sound. It reuses the
+island's tiles, the door and the stockroom's spare sun (counted out),
+and it comes off the motel, through the pool plant, since a motel pool
+has to be filled from somewhere.
+
+**Plumbing changed.** A new lazy world (`notReady` / `markWorldReady`,
+mounted when its door is in reach), a seventh acoustic (`pool`, with its
+own water sounds), a door each way in `worldStore` and `levels.ts`, and
+the Lido's group in `IslandFeed`'s `others` (it doesn't watch Plato TV).
+The Lido's base floor is the flooded one (`WADE_Y`, -0.3) and every dry
+floor is a patch at 0, so stepping into water is a step down. Its tiled
+shell is built by a small `TileBuilder` (world-space UVs, one merged mesh
+per tint) and an `archWall` that extrudes a wall with round-headed
+arches cut up from its foot. The pool is three's `Water` (as on the
+island), the mirror a `Reflector` that renders only when you're near it,
+the shallow water and the pool floor a shared caustic shader, and the
+tiles get a `RoomEnvironment` PMREM as their environment map; both
+three examples stay in the Lido's own chunk (17 KB gzipped). Around 280
+draw calls on the deck, about 700 by the mirror. The motel gains the
+pool plant (`PLANT_*`) and a second door; its small-sign helper now
+shrinks a long title to fit. The stockroom's second spare sun is gone
+(pallet tagged), and its counts say 2 out. The door test covers
+motel → lido → motel.
+
+**Open threads for future rounds.**
+
+- **The shadow at the kiosk.** One shadow (adult), found by the pool,
+  unclaimed. The rules say bathers must be reflected at all times, and
+  the mirror in the flooded wing reflects everything but the visitor.
+  Whose shadow it is, and whether anyone comes back for it, is open.
+- **The filter room.** A lilac door under the sun terrace: REFLECTIONS,
+  AUTHORISED STAFF ONLY. Something cleans the reflections before they
+  reach the water, the island's sea, and the motel's pool. It is the
+  obvious next back room.
+- **The other half of the sun.** It is supplied by the water. If the
+  pool were ever drained (it is "deeper in reflection than in fact"),
+  there would be half a sun and nothing under it. The stockroom has one
+  wrapped spare left.
+- **Up and out.** After reflections, Plato's prisoner looks at things
+  themselves, and last at the sun. The slide goes through a wall, the
+  ceiling is a sky, and the terrace faces a window onto the pool. As with
+  the loading bay, the car park, the road and the flue: the way out is
+  best kept shut, or handled with great restraint.
+- Stock: suns 4, 2 out (the island's, and the Lido's, halved). Doors
+  still 11 made, 4 out; the pool plant's door is the island model, like
+  the motel's gate, and isn't counted.

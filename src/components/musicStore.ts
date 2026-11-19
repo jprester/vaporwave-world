@@ -66,9 +66,19 @@ let autoStartArmed = false;
 // In the powerhouse ("plant") it comes from the control gallery's radio, a
 // small band-limited speaker heard mostly as a long, dark wash off a steel
 // roof, over the generators: a low mains drone and a faint turbine whine.
+// In the Lido ("pool") it plays through underwater speakers: muffled, and
+// heard mostly as a long, bright wash off wet tile, over lapping water and
+// the odd drip.
 // If Web Audio is unavailable, volume falls back to the elements' own volume
 // and there are no effects.
-export type Acoustics = "open" | "tv" | "hall" | "mall" | "court" | "plant";
+export type Acoustics =
+  | "open"
+  | "tv"
+  | "hall"
+  | "mall"
+  | "court"
+  | "plant"
+  | "pool";
 const TV_LEVEL = 1.1;
 const PA_DRY_LEVEL = 0.35;
 const PA_WET_LEVEL = 1.25;
@@ -82,6 +92,10 @@ const COURT_WET_LEVEL = 0.6;
 const PLANT_DRY_LEVEL = 0.12;
 const PLANT_WET_LEVEL = 1.15;
 const PLANT_DRONE_LEVEL = 1;
+// The poolrooms: underwater speakers, nearly all tiled reverb.
+const POOL_DRY_LEVEL = 0.22;
+const POOL_WET_LEVEL = 1.05;
+const POOL_WATER_LEVEL = 1;
 const AMBIENCE_LEVEL: Record<Acoustics, number> = {
   open: 0,
   tv: 1,
@@ -89,6 +103,7 @@ const AMBIENCE_LEVEL: Record<Acoustics, number> = {
   mall: 0.45,
   court: 0.3,
   plant: 0.6,
+  pool: 0.2,
 };
 let acoustics: Acoustics = "open";
 let audioCtx: AudioContext | null = null;
@@ -106,6 +121,9 @@ let courtWet: GainNode | null = null;
 let plantDry: GainNode | null = null;
 let plantWet: GainNode | null = null;
 let plantDrone: GainNode | null = null;
+let poolDry: GainNode | null = null;
+let poolWet: GainNode | null = null;
+let poolWater: GainNode | null = null;
 let ambienceGain: GainNode | null = null;
 let master: GainNode | null = null;
 
@@ -195,6 +213,65 @@ function buildTurbineDrone(ctx: AudioContext, out: AudioNode) {
   lfo.start();
 }
 
+// The poolrooms' own sounds: water lapping at the tiles, slowly swelling
+// and settling, and drips falling into it now and then. Both are loops of
+// noise and short pings rendered once into buffers. Silent unless the Lido
+// is the current world.
+function buildPoolWater(ctx: AudioContext, out: AudioNode) {
+  const rate = ctx.sampleRate;
+  const lapLen = Math.floor(rate * 4);
+  const lapBuf = ctx.createBuffer(1, lapLen, rate);
+  const lap = lapBuf.getChannelData(0);
+  let b = 0;
+  for (let i = 0; i < lapLen; i++) {
+    b = (b + (Math.random() * 2 - 1) * 0.06) / 1.06;
+    lap[i] = b * 2.4;
+  }
+  const lapSrc = ctx.createBufferSource();
+  lapSrc.buffer = lapBuf;
+  lapSrc.loop = true;
+  const lapBand = ctx.createBiquadFilter();
+  lapBand.type = "bandpass";
+  lapBand.frequency.value = 520;
+  lapBand.Q.value = 0.7;
+  const lapGain = ctx.createGain();
+  lapGain.gain.value = 0.035;
+  const swell = ctx.createOscillator();
+  swell.frequency.value = 0.23;
+  const swellGain = ctx.createGain();
+  swellGain.gain.value = 0.02;
+  swell.connect(swellGain).connect(lapGain.gain);
+  lapSrc.connect(lapBand).connect(lapGain);
+  lapGain.connect(out);
+  lapSrc.start();
+  swell.start();
+
+  // Drips: a falling ping each, at uneven intervals over an 11 s loop.
+  const dripLen = Math.floor(rate * 11.3);
+  const dripBuf = ctx.createBuffer(1, dripLen, rate);
+  const d = dripBuf.getChannelData(0);
+  const times = [0.7, 2.9, 3.35, 5.8, 7.6, 9.1, 10.4];
+  for (const t0 of times) {
+    const start = Math.floor(t0 * rate);
+    const f0 = 1500 + Math.random() * 900;
+    let phase = 0;
+    for (let i = 0; i < rate * 0.09 && start + i < dripLen; i++) {
+      const t = i / rate;
+      const f = f0 * (1 - Math.min(0.55, t * 9));
+      phase += (2 * Math.PI * f) / rate;
+      d[start + i] += Math.sin(phase) * Math.exp(-t * 55) * (0.18 + Math.random() * 0.1);
+    }
+  }
+  const dripSrc = ctx.createBufferSource();
+  dripSrc.buffer = dripBuf;
+  dripSrc.loop = true;
+  const dripGain = ctx.createGain();
+  dripGain.gain.value = 0.35;
+  dripSrc.connect(dripGain);
+  dripGain.connect(out);
+  dripSrc.start();
+}
+
 // A synthetic impulse response for a big empty space: a few discrete early
 // reflections, then a dense noise tail that decays and loses its highs as it
 // goes. The stockroom's concrete hall (the default) rings for ~4 s and goes
@@ -244,6 +321,23 @@ const TURBINE_HALL: Space = {
     [97, 0.3],
     [151, 0.26],
     [233, 0.18],
+  ],
+};
+// Wet tile and water: bright, long, with a fast flutter of early
+// reflections between parallel tiled walls.
+const TILED_POOL: Space = {
+  seconds: 5.2,
+  brightness: 0.97,
+  dulling: 0.5,
+  decay: 2.3,
+  reflections: [
+    [9, 0.32],
+    [18, 0.3],
+    [27, 0.27],
+    [36, 0.24],
+    [47, 0.22],
+    [71, 0.2],
+    [104, 0.16],
   ],
 };
 const ATRIUM: Space = {
@@ -388,6 +482,30 @@ function ensureGraph() {
     plantDrone.connect(master);
     buildTurbineDrone(ctx, plantDrone);
 
+    // The Lido: underwater speakers (muffled, no top end), into wet tile.
+    const poolHigh = ctx.createBiquadFilter();
+    poolHigh.type = "highpass";
+    poolHigh.frequency.value = 110;
+    const poolLow = ctx.createBiquadFilter();
+    poolLow.type = "lowpass";
+    poolLow.frequency.value = 1250;
+    poolLow.Q.value = 0.8;
+    const tiles = ctx.createConvolver();
+    tiles.buffer = hallImpulse(ctx, TILED_POOL);
+    poolDry = ctx.createGain();
+    poolWet = ctx.createGain();
+    musicGain.connect(poolHigh).connect(poolLow);
+    poolLow.connect(poolDry).connect(master);
+    poolLow.connect(tiles).connect(poolWet).connect(master);
+    // The water's own sounds, dry and with a send into the same tiles.
+    poolWater = ctx.createGain();
+    poolWater.gain.value = 0;
+    poolWater.connect(master);
+    const poolWaterSend = ctx.createGain();
+    poolWaterSend.gain.value = 0.6;
+    poolWater.connect(poolWaterSend).connect(tiles);
+    buildPoolWater(ctx, poolWater);
+
     musicGain.connect(directGain).connect(master);
     musicGain
       .connect(tvHigh)
@@ -428,7 +546,10 @@ function applyAcoustics(immediate = false) {
     !courtWet ||
     !plantDry ||
     !plantWet ||
-    !plantDrone
+    !plantDrone ||
+    !poolDry ||
+    !poolWet ||
+    !poolWater
   )
     return;
   const tv = acoustics === "tv";
@@ -436,6 +557,7 @@ function applyAcoustics(immediate = false) {
   const mall = acoustics === "mall";
   const court = acoustics === "court";
   const plant = acoustics === "plant";
+  const pool = acoustics === "pool";
   const targets: [AudioParam, number][] = [
     [directGain.gain, acoustics === "open" ? 1 : 0],
     [tvGain.gain, tv ? TV_LEVEL : 0],
@@ -448,6 +570,9 @@ function applyAcoustics(immediate = false) {
     [plantDry.gain, plant ? PLANT_DRY_LEVEL : 0],
     [plantWet.gain, plant ? PLANT_WET_LEVEL : 0],
     [plantDrone.gain, plant ? PLANT_DRONE_LEVEL : 0],
+    [poolDry.gain, pool ? POOL_DRY_LEVEL : 0],
+    [poolWet.gain, pool ? POOL_WET_LEVEL : 0],
+    [poolWater.gain, pool ? POOL_WATER_LEVEL : 0],
     [ambienceGain.gain, AMBIENCE_LEVEL[acoustics]],
   ];
   const now = audioCtx.currentTime;

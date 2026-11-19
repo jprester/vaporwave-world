@@ -16,6 +16,7 @@ A first-person **vaporwave 3D experience** — a liminal poolroom platform drift
 - **A door that doesn't belong** — the island, the cave and the stockroom also have a glass door that looks like it came from somewhere else entirely. They all lead to the same place, and from there you can get anywhere, upstairs included. It loads only when you first need it
 - **The Sunset Motel** — a staff door in the cave's east wall opens onto a two-storey courtyard motel at permanent golden hour: a pool with a sun painted on the bottom, a diving board, one lit room, one room lit by a television, a maid's cart, a payphone, and a VACANCY sign that has been on for a while. It has its own short, dry courtyard acoustic
 - **Door #11** — the stockroom has kept a spare door tagged "NOT YET HUNG, DESTINATION: TBC" since the first round. It has been hung now, and there's firelight under it. Behind it is where the golden hour comes from: a cold, high turbine hall with three generators, a control gallery up a steel stair, a spare moon on the crane, and at the far end the fire itself. It has its own long, dark acoustic over the hum of the machines
+- **The pool plant** — a little stucco hut in the motel courtyard, aqua light under its door. Behind it, the Lido: white-tiled poolrooms with pastel bands, a long pool under a ceiling that is a sunset sky, and at the far end a sun that is only half there. The water supplies the other half. There are flooded rooms of piers that go on forever, changing cubicles, a sun terrace up the stairs and a slide that is closed. The music comes through underwater speakers into a long, bright, wet-tile reverb, over lapping water and the odd drip
 - **First-person walk camera** — custom kinematic controller with acceleration, gravity, and jumping
 - **Vaporwave grade** — bloom, chromatic aberration, film noise, and vignette, per world (not every world gets it)
 
@@ -23,7 +24,7 @@ A first-person **vaporwave 3D experience** — a liminal poolroom platform drift
 | ----------------------------- | ------------------------------- |
 | ![Pool](screenshots/pool.png) | ![Ocean](screenshots/ocean.png) |
 | ![Neon](screenshots/neon.png) | ![Sunset Motel](screenshots/motel-fixed-hero4.png) |
-| ![The powerhouse](screenshots/powerhouse-hero.png) |                                 |
+| ![The powerhouse](screenshots/powerhouse-hero.png) | ![The Lido](screenshots/lido-hero.png) |
 
 ## Tech stack
 
@@ -96,11 +97,14 @@ src/
     │                     #   (lazy-loaded; spoilers in docs/WORLD.md)
     ├── powerhouse/       # Behind door #11: the turbine hall, the fire, the
     │                     #   control gallery (lazy-loaded; spoilers in docs/WORLD.md)
+    ├── lido/             # Behind the motel's pool plant: the poolrooms, the
+    │                     #   half sun, the mirror (lazy-loaded; spoilers in docs/WORLD.md)
     ├── MusicPlayer.tsx   # Boombox: distance-based volume, proximity detection
     ├── musicStore.ts     # Tracks, play/pause/mute, Web Audio acoustics per world
     │                     #   (open air, TV speaker, PA + hall reverb, ceiling
     │                     #   speakers + atrium reverb, outdoor speaker + courtyard
-    │                     #   slap) + ambience
+    │                     #   slap, radio + turbine hall, underwater speakers +
+    │                     #   wet tile) + ambience
     └── UI.tsx            # HUD, music controls, door prompt, fade overlay
 
 docs/
@@ -126,7 +130,7 @@ npm run dev                                            # serves :3000
 npm run shot -- --out screenshots/sun.png --pitch 0.05 # capture a frame
 ```
 
-Appending `?qa=1` to the URL hides the Leva panel and HUD for clean captures, and `?world=cave`, `?world=stockroom`, `?world=mall`, `?world=motel` or `?world=powerhouse` starts in that world. In QA mode, `window.travel("cave")` (and so on) goes through a door from the console. See `scripts/shot.mjs` for all flags (`--yaw`, `--pitch`, `--x`/`--z`, `--frames`, etc.). If Playwright's bundled browser isn't installed, point `CHROMIUM_PATH` at a Chromium binary.
+Appending `?qa=1` to the URL hides the Leva panel and HUD for clean captures, and `?world=cave`, `?world=stockroom`, `?world=mall`, `?world=motel`, `?world=powerhouse` or `?world=lido` starts in that world. In QA mode, `window.travel("cave")` (and so on) goes through a door from the console. See `scripts/shot.mjs` for all flags (`--yaw`, `--pitch`, `--x`/`--z`, `--frames`, etc.). If Playwright's bundled browser isn't installed, point `CHROMIUM_PATH` at a Chromium binary.
 
 To check that every door works the way a player uses it (stand at it, look at it, open it, arrive in front of the right door on the other side), run the door test against the dev server:
 

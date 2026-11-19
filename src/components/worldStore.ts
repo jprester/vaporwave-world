@@ -13,6 +13,7 @@ export const WORLD_IDS = [
   "mall",
   "motel",
   "powerhouse",
+  "lido",
 ] as const;
 export type WorldId = (typeof WORLD_IDS)[number];
 
@@ -32,8 +33,9 @@ const DOORS: Record<WorldId, WorldId[]> = {
   cave: ["island", "stockroom", "mall", "motel"],
   stockroom: ["cave", "mall", "powerhouse"],
   mall: ["island", "cave", "stockroom"],
-  motel: ["cave"],
+  motel: ["cave", "lido"],
   powerhouse: ["stockroom"],
+  lido: ["motel"],
 };
 
 // The world you'd have come from when starting somewhere via ?world=.
@@ -44,11 +46,17 @@ const DEFAULT_ORIGIN: Record<WorldId, WorldId | null> = {
   mall: "island",
   motel: "cave",
   powerhouse: "stockroom",
+  lido: "motel",
 };
 
 // Worlds whose assets load lazily, the first time they're needed. The fade
 // holds on its color until the destination reports it's ready.
-const notReady = new Set<WorldId>(["mall", "motel", "powerhouse"]);
+const notReady = new Set<WorldId>([
+  "mall",
+  "motel",
+  "powerhouse",
+  "lido",
+]);
 const READY_POLL_MS = 100;
 
 export function markWorldReady(world: WorldId) {

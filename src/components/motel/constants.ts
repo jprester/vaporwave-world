@@ -124,8 +124,19 @@ export const VENUS_PLINTH_H = 0.55;
 // A plastic table and two chairs, in the corner by the west fence.
 export const TABLE: [number, number] = [-12, 11.2];
 
+// The pool plant: a small stucco hut against the south wall, its door
+// facing the pool. Behind it, the Lido.
+export const PLANT_X0 = 7.8;
+export const PLANT_X1 = 13.6;
+export const PLANT_Z0 = 12.6; // front face
+export const PLANT_Z1 = HALF_L - 0.3; // against the south wall
+export const PLANT_H = 5;
+export const PLANT_DOOR_X = 10.7;
+export const PLANT_DOOR_Z = PLANT_Z0 - 0.35;
+
 export const DOORS: DoorSpot[] = [
   { to: "cave", x: MOTEL_DOOR_X, z: MOTEL_DOOR_Z, normal: [-1, 0] },
+  { to: "lido", x: PLANT_DOOR_X, z: PLANT_DOOR_Z, normal: [0, -1] },
 ];
 
 // The balcony and the stair are floor patches above the courtyard.
@@ -183,6 +194,13 @@ export const COLLIDERS: Footprint[] = [
   { cx: POOL_X, cz: POOL_Z - POOL_D / 2 - 0.6, w: 1.0, d: 1.2, ...GROUND },
   { cx: POOL_SIGN[0], cz: POOL_SIGN[1], w: 0.5, d: 0.5, ...GROUND },
   { cx: ASHTRAY[0], cz: ASHTRAY[1], w: 0.45, d: 0.45, ...GROUND },
+  // The pool plant.
+  {
+    cx: (PLANT_X0 + PLANT_X1) / 2,
+    cz: (PLANT_Z0 + PLANT_Z1) / 2,
+    w: PLANT_X1 - PLANT_X0,
+    d: PLANT_Z1 - PLANT_Z0,
+  },
   // The Venus statue and the poolside table.
   { cx: VENUS[0], cz: VENUS[1], w: 1.45, d: 1.45, ...GROUND },
   { cx: TABLE[0], cz: TABLE[1], w: 5.6, d: 4.2, ...GROUND },
